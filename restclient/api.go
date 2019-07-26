@@ -1,6 +1,8 @@
 package restclient
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -31,6 +33,26 @@ func (c *Client) GetSObjectByExternalID(sObjectName, externalIDField, externalID
 		return nil, fmt.Errorf("failed to get SObject: %v", err)
 	}
 	return sObject, nil
+}
+
+// UpsertSObject creates/updates the SObject using the Salesforce API.
+func (c *Client) UpsertSObject(sObjectName, id string, sObject SObject) (*UpsertResult, error) {
+	apiPath := path.Join(fmt.Sprintf(sObjectPath, c.sess.APIVersion), sObjectName, id)
+	var result UpsertResult
+	if err := c.doPatch(apiPath, sObject, &result); err != nil {
+		return nil, fmt.Errorf("failed to upsert sobject: %v", err)
+	}
+	return &result, nil
+}
+
+// UpsertSObjectByExternalID creates/updates the SObject using the Salesforce API.
+func (c *Client) UpsertSObjectByExternalID(sObjectName, externalIDField, externalID string, sObject SObject) (*UpsertResult, error) {
+	apiPath := path.Join(fmt.Sprintf(sObjectPath, c.sess.APIVersion), sObjectName, externalIDField, externalID)
+	var result UpsertResult
+	if err := c.doPatch(apiPath, sObject, &result); err != nil {
+		return nil, fmt.Errorf("failed to upsert sobject: %v", err)
+	}
+	return &result, nil
 }
 
 // DeleteSObject deletes the Sobject using the Salesforce API.
@@ -89,6 +111,21 @@ func (c *Client) FullQuery(query string) (*QueryResult, error) {
 	return partial, nil
 }
 
+func (c *Client) doPatch(apiPath string, sObject SObject, result interface{}) error {
+	body := &bytes.Buffer{}
+	if err := json.NewEncoder(body).Encode(sObject); err != nil {
+		return fmt.Errorf("failed to marshal sobject: %v", err)
+	}
+	req, err := c.buildRequest(apiPath, "", http.MethodPatch, body)
+	if err != nil {
+		return err
+	}
+	err = c.doRequest(req, result, http.StatusOK, http.StatusCreated)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 func (c *Client) doGet(apiPath, rawQuery string, result interface{}) error {
 	req, err := c.buildRequest(apiPath, rawQuery, http.MethodGet, nil)
 	if err != nil {
