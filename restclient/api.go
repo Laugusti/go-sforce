@@ -33,6 +33,19 @@ func (c *Client) GetSObjectByExternalID(sObjectName, externalIDField, externalID
 	return sObject, nil
 }
 
+// DeleteSObject deletes the Sobject using the Salesforce API.
+func (c *Client) DeleteSObject(sObjectName, id string) error {
+	apiPath := path.Join(fmt.Sprintf(sObjectPath, c.sess.APIVersion), sObjectName, id)
+	req, err := c.buildRequest(apiPath, "", http.MethodDelete, nil)
+	if err != nil {
+		return fmt.Errorf("failed to deleted sobject: %v", err)
+	}
+	if err := c.doRequest(req, nil, http.StatusNoContent); err != nil {
+		return fmt.Errorf("failed to deleted sobject: %v", err)
+	}
+	return nil
+}
+
 // Query executes a SOQL query using the Salesforce API.
 func (c *Client) Query(query string) (*QueryResult, error) {
 	apiPath := fmt.Sprintf(queryPath, c.sess.APIVersion)
@@ -82,7 +95,7 @@ func (c *Client) doGet(apiPath, rawQuery string, result interface{}) error {
 		return err
 	}
 
-	err = c.doRequest(req, result, 200)
+	err = c.doRequest(req, result, http.StatusOK)
 	if err != nil {
 		return err
 	}

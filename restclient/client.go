@@ -79,6 +79,7 @@ func (c *Client) doRequest(req *http.Request, result interface{}, validStatuses 
 
 	// check status code
 	if len(validStatuses) > 0 && !isInSlice(resp.StatusCode, validStatuses) {
+		// maybe unmarshal to APIError??
 		b, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			return fmt.Errorf("unexpected status code (want %v, got %d): failed to read request body", validStatuses, resp.StatusCode)
