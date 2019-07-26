@@ -15,6 +15,16 @@ const (
 	queryPath   = "/services/data/%s/query/"
 )
 
+// CreateSObject creates the SObject using the Salesforce API.
+func (c *Client) CreateSObject(sObjectName string, sObject SObject) (*UpsertResult, error) {
+	apiPath := path.Join(fmt.Sprintf(sObjectPath, c.sess.APIVersion), sObjectName)
+	var result UpsertResult
+	if err := c.doPost(apiPath, sObject, &result); err != nil {
+		return nil, fmt.Errorf("failed to create sobject: %v", err)
+	}
+	return &result, nil
+}
+
 // GetSObject retrieves the SObject from Salesforce API using the Id.
 func (c *Client) GetSObject(sObjectName, id string) (SObject, error) {
 	apiPath := path.Join(fmt.Sprintf(sObjectPath, c.sess.APIVersion), sObjectName, id)
@@ -111,7 +121,20 @@ func (c *Client) FullQuery(query string) (*QueryResult, error) {
 	return partial, nil
 }
 
-func (c *Client) doPatch(apiPath string, sObject SObject, result interface{}) error {
+func (c *Client) doGet(apiPath, rawQuery string, result interface{}) error {
+	req, err := c.buildRequest(apiPath, rawQuery, http.MethodGet, nil)
+	if err != nil {
+		return err
+	}
+
+	err = c.doRequest(req, result, http.StatusOK)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) doPatch(apiPath string, sObject SObject, result *UpsertResult) error {
 	body := &bytes.Buffer{}
 	if err := json.NewEncoder(body).Encode(sObject); err != nil {
 		return fmt.Errorf("failed to marshal sobject: %v", err)
@@ -126,13 +149,17 @@ func (c *Client) doPatch(apiPath string, sObject SObject, result interface{}) er
 	}
 	return nil
 }
-func (c *Client) doGet(apiPath, rawQuery string, result interface{}) error {
-	req, err := c.buildRequest(apiPath, rawQuery, http.MethodGet, nil)
+
+func (c *Client) doPost(apiPath string, sObject SObject, result *UpsertResult) error {
+	body := &bytes.Buffer{}
+	if err := json.NewEncoder(body).Encode(sObject); err != nil {
+		return fmt.Errorf("failed to marshal sobject: %v", err)
+	}
+	req, err := c.buildRequest(apiPath, "", http.MethodPost, body)
 	if err != nil {
 		return err
 	}
-
-	err = c.doRequest(req, result, http.StatusOK)
+	err = c.doRequest(req, result, http.StatusCreated)
 	if err != nil {
 		return err
 	}
