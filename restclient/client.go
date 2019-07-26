@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"path"
 
-	"github.com/Laugusti/salesforce-client/session"
+	"github.com/Laugusti/go-sforce/session"
 )
 
 // Client handles request/response with the Salesforce API.

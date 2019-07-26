@@ -10,7 +10,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/Laugusti/salesforce-client/credentials"
+	"github.com/Laugusti/go-sforce/credentials"
 )
 
 const (
@@ -22,6 +22,7 @@ type Session struct {
 	LoginURL     string
 	APIVersion   string
 	creds        *credentials.OAuth
+	httpClient   *http.Client
 	instanceURL  string
 	requestToken *RequestToken
 }
@@ -51,12 +52,15 @@ func New(loginURL, apiVersion string, creds *credentials.OAuth) (*Session, error
 		return nil, errors.New(strings.Join(errMsg, ";"))
 	}
 
-	return &Session{LoginURL: loginURL, APIVersion: apiVersion,
+	return &Session{
+		LoginURL:   loginURL,
+		APIVersion: apiVersion,
 		creds: &credentials.OAuth{Username: creds.Username,
 			Password:     creds.Password,
 			ClientID:     creds.ClientID,
 			ClientSecret: creds.ClientSecret,
 		},
+		httpClient: &http.Client{},
 	}, nil
 }
 
@@ -71,10 +75,11 @@ func Must(sess *Session, err error) *Session {
 
 // Login requests an access token from the Salesforce API
 func (s *Session) Login() error {
-	u, err := url.Parse(path.Join(s.LoginURL, oauthTokenPath))
+	u, err := url.Parse(s.LoginURL)
 	if err != nil {
 		return err
 	}
+	u.Path = path.Join(u.Path, oauthTokenPath)
 	form := url.Values{}
 	form.Set("grant_type", "password")
 	form.Set("client_id", s.creds.ClientID)
@@ -82,7 +87,7 @@ func (s *Session) Login() error {
 	form.Set("username", s.creds.Username)
 	form.Set("password", s.creds.Password)
 
-	resp, err := http.DefaultClient.PostForm(u.String(), form)
+	resp, err := s.httpClient.PostForm(u.String(), form)
 	if err != nil {
 		return fmt.Errorf("failed to get access token: %v", err)
 	}
