@@ -25,7 +25,7 @@ func New(sess *session.Session) *Client {
 }
 
 // buildRequest creates a http.Request struct for the api path.
-func (c *Client) buildRequest(apiPath, method string, body io.Reader) (*http.Request, error) {
+func (c *Client) buildRequest(apiPath, rawQuery, method string, body io.Reader) (*http.Request, error) {
 	// ensure session is authorized
 	if !c.sess.HasToken() {
 		if err := c.sess.Login(); err != nil {
@@ -34,13 +34,17 @@ func (c *Client) buildRequest(apiPath, method string, body io.Reader) (*http.Req
 	}
 
 	// build api url using instance url
-	url, err := joinURL(c.sess.InstanceURL(), apiPath)
+	apiURL, err := joinURL(c.sess.InstanceURL(), apiPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build request: %v", err)
 	}
+	// add query to api url
+	u, _ := url.Parse(apiURL)
+	u.RawQuery = rawQuery
+	apiURL = u.String()
 
 	// creates http reqeust
-	req, err := http.NewRequest(method, url, body)
+	req, err := http.NewRequest(method, apiURL, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build request: %v", err)
 	}
