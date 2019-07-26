@@ -16,7 +16,7 @@ func (s SObject) GetField(field string) (interface{}, error) {
 	}
 
 	// split field param using "." and drill down map object to get value
-	var value interface{} = s
+	var value interface{} = map[string]interface{}(s)
 	for _, f := range strings.Split(field, ".") {
 		m, ok := value.(map[string]interface{})
 		if !ok {
