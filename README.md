@@ -1,4 +1,4 @@
-# salesforce-client
+# go-sforce
 Salesforce Go Client
 
 ## Usage
