@@ -104,6 +104,11 @@ func (s *Session) Login() error {
 	return nil
 }
 
+// HasToken returns true if the session has a request token, otherwise false.
+func (s *Session) HasToken() bool {
+	return s.requestToken != nil
+}
+
 // AccessToken returns the access token from the Login response.
 func (s *Session) AccessToken() string {
 	if s.requestToken == nil {
