@@ -2,28 +2,20 @@ package testserver
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
-
-	"github.com/Laugusti/go-sforce/restclient"
-	"github.com/Laugusti/go-sforce/session"
-)
-
-const (
-	// TestAccessToken is a access token used in the login success response
-	TestAccessToken = "MOCK_TOKEN"
 )
 
 // Server is a wrapper for a test server.
 type Server struct {
-	s              *httptest.Server
-	ServerResponse func(w http.ResponseWriter, r *http.Request)
+	s           *httptest.Server
+	HandlerFunc http.HandlerFunc
 }
 
 // New returns a new unstarted Server
 func New() *Server {
 	s := &Server{}
+	s.HandlerFunc = JSONResponse(map[string]string{"message": "hello world"}, http.StatusOK)
 	return s
 }
 
@@ -33,9 +25,9 @@ func (s *Server) Start() {
 	if s.s != nil {
 		return
 	}
-	s.ServerResponse = LoginSuccessResponse
+	s.HandlerFunc = JSONResponse(map[string]string{"message": "hello world"}, http.StatusOK)
 	s.s = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s.ServerResponse(w, r)
+		s.HandlerFunc(w, r)
 	}))
 }
 
@@ -64,43 +56,15 @@ func (s *Server) URL() string {
 	return s.s.URL
 }
 
-var (
-	// LoginSuccessResponse is the response for a successful login
-	LoginSuccessResponse = func(w http.ResponseWriter, r *http.Request) {
-		serverURL := fmt.Sprintf("http://%s", r.Host)
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(session.RequestToken{
-			AccessToken: TestAccessToken,
-			InstanceURL: serverURL,
-		})
+// JSONResponse creates reponse by marshalling the value as a json.
+func JSONResponse(v interface{}, statusCode int) http.HandlerFunc {
+	return func(w http.ResponseWriter, _ *http.Request) {
+		b, err := json.Marshal(v)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(statusCode)
+		_, _ = w.Write(b)
 	}
-
-	// UnauthorizedResponse is the response for a unauthorized request
-	UnauthorizedResponse = func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusUnauthorized)
-		_ = json.NewEncoder(w).Encode(restclient.APIError{
-			Message:   "Session expired or invalid",
-			ErrorCode: "INVALID_SESSION_ID",
-		})
-	}
-
-	// CreateSuccessResponse is the response for a successful create.
-	CreateSuccessResponse = func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusCreated)
-		_ = json.NewEncoder(w).Encode(restclient.UpsertResult{
-			ID:      "id",
-			Success: true,
-			Errors:  []interface{}{},
-		})
-	}
-
-	// UpdateSuccessResponse is the response for a successful create.
-	UpdateSuccessResponse = func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(restclient.UpsertResult{
-			ID:      "id",
-			Success: true,
-			Errors:  []interface{}{},
-		})
-	}
-)
+}
