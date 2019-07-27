@@ -1,7 +1,6 @@
 package testserver
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 )
@@ -15,7 +14,7 @@ type Server struct {
 // New returns a new unstarted Server
 func New() *Server {
 	s := &Server{}
-	s.HandlerFunc = JSONResponse(map[string]string{"message": "hello world"}, http.StatusOK)
+	s.HandlerFunc = StaticJSONHandler(map[string]string{"message": "hello world"}, http.StatusOK)
 	return s
 }
 
@@ -25,7 +24,7 @@ func (s *Server) Start() {
 	if s.s != nil {
 		return
 	}
-	s.HandlerFunc = JSONResponse(map[string]string{"message": "hello world"}, http.StatusOK)
+	s.HandlerFunc = StaticJSONHandler(map[string]string{"message": "hello world"}, http.StatusOK)
 	s.s = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s.HandlerFunc(w, r)
 	}))
@@ -54,17 +53,4 @@ func (s *Server) Client() *http.Client {
 // URL returns the base url of server
 func (s *Server) URL() string {
 	return s.s.URL
-}
-
-// JSONResponse creates reponse by marshalling the value as a json.
-func JSONResponse(v interface{}, statusCode int) http.HandlerFunc {
-	return func(w http.ResponseWriter, _ *http.Request) {
-		b, err := json.Marshal(v)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		w.WriteHeader(statusCode)
-		_, _ = w.Write(b)
-	}
 }
