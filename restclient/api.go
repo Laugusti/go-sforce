@@ -17,7 +17,16 @@ const (
 
 // CreateSObject creates the SObject using the Salesforce API.
 func (c *Client) CreateSObject(sObjectName string, sObject SObject) (*UpsertResult, error) {
+	// validate parameters
+	if sObjectName == "" {
+		return nil, errors.New("sobject name is required")
+	}
+	if sObject == nil || len(sObject) == 0 {
+		return nil, errors.New("sobject value is required")
+	}
+	// build api path
 	apiPath := path.Join(fmt.Sprintf(sObjectPath, c.sess.APIVersion), sObjectName)
+	// do post and unmarshal response to result object
 	var result UpsertResult
 	if err := c.doPost(apiPath, sObject, &result); err != nil {
 		return nil, fmt.Errorf("failed to create sobject: %v", err)
@@ -27,7 +36,16 @@ func (c *Client) CreateSObject(sObjectName string, sObject SObject) (*UpsertResu
 
 // GetSObject retrieves the SObject from Salesforce API using the Id.
 func (c *Client) GetSObject(sObjectName, id string) (SObject, error) {
+	// validate parameters
+	if sObjectName == "" {
+		return nil, errors.New("sobject name is required")
+	}
+	if id == "" {
+		return nil, errors.New("sobject id is required")
+	}
+	// build api path
 	apiPath := path.Join(fmt.Sprintf(sObjectPath, c.sess.APIVersion), sObjectName, id)
+	// do post and unmarshal response to result object
 	var sObject SObject
 	if err := c.doGet(apiPath, "", sObject); err != nil {
 		return nil, fmt.Errorf("failed to get SObject: %v", err)
@@ -37,7 +55,19 @@ func (c *Client) GetSObject(sObjectName, id string) (SObject, error) {
 
 // GetSObjectByExternalID retrieves the SObject from the Salesforce API using the external Id.
 func (c *Client) GetSObjectByExternalID(sObjectName, externalIDField, externalID string) (SObject, error) {
+	// validate parameters
+	if sObjectName == "" {
+		return nil, errors.New("sobject name is required")
+	}
+	if externalIDField == "" {
+		return nil, errors.New("external id field is required")
+	}
+	if externalID == "" {
+		return nil, errors.New("external id is required")
+	}
+	// build api path
 	apiPath := path.Join(fmt.Sprintf(sObjectPath, c.sess.APIVersion), sObjectName, externalIDField, externalID)
+	// do post and unmarshal response to result object
 	var sObject SObject
 	if err := c.doGet(apiPath, "", sObject); err != nil {
 		return nil, fmt.Errorf("failed to get SObject: %v", err)
@@ -47,7 +77,19 @@ func (c *Client) GetSObjectByExternalID(sObjectName, externalIDField, externalID
 
 // UpsertSObject creates/updates the SObject using the Salesforce API.
 func (c *Client) UpsertSObject(sObjectName, id string, sObject SObject) (*UpsertResult, error) {
+	// validate parameters
+	if sObjectName == "" {
+		return nil, errors.New("sobject name is required")
+	}
+	if id == "" {
+		return nil, errors.New("sobject id is required")
+	}
+	if sObject == nil || len(sObject) == 0 {
+		return nil, errors.New("sobject value is required")
+	}
+	// build api path
 	apiPath := path.Join(fmt.Sprintf(sObjectPath, c.sess.APIVersion), sObjectName, id)
+	// do post and unmarshal response to result object
 	var result UpsertResult
 	if err := c.doPatch(apiPath, sObject, &result); err != nil {
 		return nil, fmt.Errorf("failed to upsert sobject: %v", err)
@@ -57,7 +99,22 @@ func (c *Client) UpsertSObject(sObjectName, id string, sObject SObject) (*Upsert
 
 // UpsertSObjectByExternalID creates/updates the SObject using the Salesforce API.
 func (c *Client) UpsertSObjectByExternalID(sObjectName, externalIDField, externalID string, sObject SObject) (*UpsertResult, error) {
+	// validate parameters
+	if sObjectName == "" {
+		return nil, errors.New("sobject name is required")
+	}
+	if externalIDField == "" {
+		return nil, errors.New("external id field is required")
+	}
+	if externalID == "" {
+		return nil, errors.New("external id is required")
+	}
+	if sObject == nil || len(sObject) == 0 {
+		return nil, errors.New("sobject value is required")
+	}
+	// build api path
 	apiPath := path.Join(fmt.Sprintf(sObjectPath, c.sess.APIVersion), sObjectName, externalIDField, externalID)
+	// do post and unmarshal response to result object
 	var result UpsertResult
 	if err := c.doPatch(apiPath, sObject, &result); err != nil {
 		return nil, fmt.Errorf("failed to upsert sobject: %v", err)
@@ -67,11 +124,21 @@ func (c *Client) UpsertSObjectByExternalID(sObjectName, externalIDField, externa
 
 // DeleteSObject deletes the Sobject using the Salesforce API.
 func (c *Client) DeleteSObject(sObjectName, id string) error {
+	// validate parameters
+	if sObjectName == "" {
+		return errors.New("sobject name is required")
+	}
+	if id == "" {
+		return errors.New("sobject id is required")
+	}
+	// build api path
 	apiPath := path.Join(fmt.Sprintf(sObjectPath, c.sess.APIVersion), sObjectName, id)
+	// build http request
 	req, err := c.buildRequest(apiPath, "", http.MethodDelete, nil)
 	if err != nil {
 		return fmt.Errorf("failed to deleted sobject: %v", err)
 	}
+	// do delete
 	if err := c.doRequest(req, nil, http.StatusNoContent); err != nil {
 		return fmt.Errorf("failed to deleted sobject: %v", err)
 	}
@@ -80,9 +147,15 @@ func (c *Client) DeleteSObject(sObjectName, id string) error {
 
 // Query executes a SOQL query using the Salesforce API.
 func (c *Client) Query(query string) (*QueryResult, error) {
+	// validate parameters
+	if query == "" {
+		return nil, errors.New("query string is required")
+	}
+	// build api path
 	apiPath := fmt.Sprintf(queryPath, c.sess.APIVersion)
 	rawQuery := fmt.Sprintf("q=%s", url.QueryEscape(query))
 
+	// do get and unmarshal response to result object
 	var queryResult QueryResult
 	if err := c.doGet(apiPath, rawQuery, &queryResult); err != nil {
 		return nil, fmt.Errorf("failed to query salesforce: %v", err)
@@ -92,10 +165,12 @@ func (c *Client) Query(query string) (*QueryResult, error) {
 
 // QueryMore retrieves the next batch of query records from the Salesforce API.
 func (c *Client) QueryMore(query *QueryResult) (*QueryResult, error) {
-	var queryResult QueryResult
+	// validate parameters
 	if query == nil || query.NextRecordsURL == "" {
 		return nil, errors.New("missing next records url")
 	}
+	// do get and unmarshal response to result object
+	var queryResult QueryResult
 	if err := c.doGet(query.NextRecordsURL, "", &queryResult); err != nil {
 		return nil, fmt.Errorf("failed to query salesforce: %v", err)
 	}

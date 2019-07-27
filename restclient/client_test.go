@@ -14,7 +14,7 @@ import (
 
 func TestBuildRequest(t *testing.T) {
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		io.Copy(w, strings.NewReader(`{"instance_url":"url", "access_token": "token"}`))
+		_, _ = io.Copy(w, strings.NewReader(`{"instance_url":"url", "access_token": "token"}`))
 	}))
 	defer s.Close()
 	client := &Client{
