@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/textproto"
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -53,6 +54,53 @@ func TestJSONBodyValidator(t *testing.T) {
 			assert.Nil(t, err)
 			req.Body = ioutil.NopCloser(&buf)
 		}
+		v.Validate(t, &req, fmt.Sprintf("input: %v", test))
+	}
+}
+
+func TestPathValidator(t *testing.T) {
+	tests := []struct {
+		path string
+		url  string
+	}{
+		{"", "http://localhost"},
+		{"/", "http://localhost/"},
+		{"/a", "http://localhost/a"},
+		{"/a/b/c", "http://localhost/a/b/c"},
+		{"/a/", "http://localhost/a/"},
+		{"/a", "http://localhost/a?b=c"},
+	}
+
+	for _, test := range tests {
+		u, err := url.Parse(test.url)
+		assert.Nil(t, err)
+		var req http.Request
+		req.URL = u
+		v := &PathValidator{test.path}
+		v.Validate(t, &req, fmt.Sprintf("input: %v", test))
+	}
+}
+
+func TestQueryValidator(t *testing.T) {
+	tests := []struct {
+		query string
+		url   string
+	}{
+		{"", "http://localhost"},
+		{"", "http://localhost/"},
+		{"a=b", "http://localhost?a=b"},
+		{"a=b", "http://localhost/a/b/c/?a=b"},
+		{"a=b,c&d=e", "http://localhost/a/b/c/?a=b,c&d=e"},
+	}
+
+	for _, test := range tests {
+		u, err := url.Parse(test.url)
+		assert.Nil(t, err)
+		var req http.Request
+		req.URL = u
+		q, err := url.ParseQuery(test.query)
+		assert.Nil(t, err)
+		v := &QueryValidator{q}
 		v.Validate(t, &req, fmt.Sprintf("input: %v", test))
 	}
 }

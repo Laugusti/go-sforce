@@ -4,34 +4,35 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-// RequestValidator is an interface with a single method to validate a http request
+// RequestValidator is an interface with a single method to validate a http request.
 type RequestValidator interface {
 	Validate(*testing.T, *http.Request, string)
 }
 
-// HeaderValidator validates headers on the request
+// HeaderValidator validates headers on the request.
 type HeaderValidator struct {
 	Key   string
 	Value string
 }
 
-// Validate implements the RequestValidator interface
+// Validate implements the RequestValidator interface.
 func (v *HeaderValidator) Validate(t *testing.T, r *http.Request, assertMsg string) {
 	got := r.Header.Get(v.Key)
 	assert.Equal(t, v.Value, got, assertMsg)
 }
 
-// JSONBodyValidator validates the request body as JSON
+// JSONBodyValidator validates the request body as JSON.
 type JSONBodyValidator struct {
 	Body interface{}
 }
 
-// Validate implements the RequestValidator interface
+// Validate implements the RequestValidator interface.
 func (v *JSONBodyValidator) Validate(t *testing.T, r *http.Request, assertMsg string) {
 	if v.Body == nil {
 		assert.Empty(t, r.Body, assertMsg)
@@ -45,6 +46,26 @@ func (v *JSONBodyValidator) Validate(t *testing.T, r *http.Request, assertMsg st
 	assert.Nil(t, json.NewDecoder(r.Body).Decode(&got), assertMsg)
 	// assert body matches
 	assert.Equal(t, want, got, assertMsg)
+}
+
+// PathValidator validates the request path.
+type PathValidator struct {
+	Path string
+}
+
+// Validate implements the RequestValidator interface.
+func (v *PathValidator) Validate(t *testing.T, r *http.Request, assertMsg string) {
+	assert.Equal(t, v.Path, r.URL.Path, assertMsg)
+}
+
+// QueryValidator validates the request query.
+type QueryValidator struct {
+	Query url.Values
+}
+
+// Validate implements the RequestValidator interface.
+func (v *QueryValidator) Validate(t *testing.T, r *http.Request, assertMsg string) {
+	assert.Equal(t, v.Query, r.URL.Query(), assertMsg)
 }
 
 func jsonObjectToMap(v interface{}) (map[string]interface{}, error) {
