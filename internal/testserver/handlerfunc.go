@@ -18,5 +18,5 @@ func ValidateAndSetResponseHandler(t *testing.T, assertMessage string, handler R
 
 // StaticJSONHandler creates reponse by marshalling the value as a json.
 func StaticJSONHandler(t *testing.T, body interface{}, statusCode int) http.HandlerFunc {
-	return ValidateAndSetResponseHandler(t, "", &JSONBodyResponseHandler{statusCode, body})
+	return ValidateAndSetResponseHandler(t, "", &JSONResponseHandler{statusCode, body})
 }
