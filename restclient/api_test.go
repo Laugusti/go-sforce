@@ -367,7 +367,7 @@ func TestQuery(t *testing.T) {
 		{"", 0, 0, "query string is required", false, 0, "", nil},
 		{"query", 200, 1, "", true, 1, "", []SObject{map[string]interface{}{"A": 1.0, "B": "two", "C": false}}},
 		{"query", 400, 1, "GENERIC_ERROR", true, 1, "", []SObject{}},
-		{"query", 200, 1, "", false, 3, server.URL(), []SObject{map[string]interface{}{"A": "a"}, map[string]interface{}{"A": "a"}}},
+		{"query", 200, 1, "", false, 3, server.URL(), []SObject{map[string]interface{}{"A": "a"}, map[string]interface{}{"A": "1"}}},
 	}
 
 	for _, test := range tests {
@@ -419,7 +419,7 @@ func TestQueryMore(t *testing.T) {
 		{&QueryResult{}, 0, 0, "missing next records url", false, 0, "", nil},
 		{&QueryResult{NextRecordsURL: "next/records/url"}, 200, 1, "", true, 1, "", []SObject{map[string]interface{}{"A": 1.0, "B": "two", "C": false}}},
 		{&QueryResult{NextRecordsURL: "nextrecordsurl"}, 400, 1, "GENERIC_ERROR", true, 1, "", []SObject{}},
-		{&QueryResult{NextRecordsURL: "nru"}, 200, 1, "", false, 3, server.URL(), []SObject{map[string]interface{}{"A": "a"}, map[string]interface{}{"A": "a"}}},
+		{&QueryResult{NextRecordsURL: "nru"}, 200, 1, "", false, 3, server.URL(), []SObject{map[string]interface{}{"A": "a"}, map[string]interface{}{"A": "1"}}},
 	}
 
 	for _, test := range tests {
@@ -452,6 +452,63 @@ func TestQueryMore(t *testing.T) {
 		assertRequest(t, assertMsg, server, test.errSnippet, requestFunc, successFunc,
 			test.requestCount, validators, handler)
 	}
+}
+
+func TestFullQuery(t *testing.T) {
+	client, server := createClientAndServer(t)
+	defer server.Stop()
+
+	want := &QueryResult{
+		Done:           true,
+		NextRecordsURL: "",
+		TotalSize:      3,
+		Records: []SObject{
+			map[string]interface{}{"A": "a"},
+			map[string]interface{}{"B": true},
+			map[string]interface{}{"C": 3.0},
+		},
+	}
+
+	validators := []testserver.RequestValidator{authTokenValidator, jsonContentTypeValidator,
+		emptyBodyValidator, getMethodValidator}
+
+	handlers := []*testserver.JSONResponseHandler{
+		&testserver.JSONResponseHandler{
+			StatusCode: http.StatusOK,
+			Body: &QueryResult{
+				Done:           false,
+				NextRecordsURL: "batch2",
+				TotalSize:      3,
+				Records:        []SObject{map[string]interface{}{"A": "a"}},
+			},
+		},
+		&testserver.JSONResponseHandler{
+			StatusCode: http.StatusOK,
+			Body: &QueryResult{
+				Done:           false,
+				NextRecordsURL: "batch3",
+				TotalSize:      3,
+				Records:        []SObject{map[string]interface{}{"B": true}},
+			},
+		},
+		&testserver.JSONResponseHandler{
+			StatusCode: http.StatusOK,
+			Body: &QueryResult{
+				Done:           true,
+				NextRecordsURL: "",
+				TotalSize:      3,
+				Records:        []SObject{map[string]interface{}{"C": 3.0}},
+			},
+		},
+	}
+
+	server.HandlerFunc = testserver.ValidateAndSetResponseHandler(t, "",
+		&testserver.JSONConsecutiveResponseHandler{Handlers: handlers},
+		validators...)
+
+	res, err := client.FullQuery("query")
+	assert.Nil(t, err)
+	assert.Equal(t, want, res)
 }
 
 func TestUnauthorizedClient(t *testing.T) {

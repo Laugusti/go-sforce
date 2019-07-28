@@ -24,8 +24,7 @@ type HeaderValidator struct {
 
 // Validate implements the RequestValidator interface.
 func (v *HeaderValidator) Validate(t *testing.T, r *http.Request, assertMsg string) {
-	got := r.Header.Get(v.Key)
-	assert.Equal(t, v.Value, got, assertMsg)
+	assert.Equal(t, v.Value, r.Header.Get(v.Key), assertMsg)
 }
 
 // JSONBodyValidator validates the request body as JSON.
@@ -56,11 +55,11 @@ type PathValidator struct {
 
 // Validate implements the RequestValidator interface.
 func (v *PathValidator) Validate(t *testing.T, r *http.Request, assertMsg string) {
+	path := r.URL.Path
 	if !strings.HasPrefix(v.Path, "/") {
-		assert.Equal(t, v.Path, strings.TrimPrefix(r.URL.Path, "/"), assertMsg)
-	} else {
-		assert.Equal(t, v.Path, r.URL.Path, assertMsg)
+		path = strings.TrimPrefix(r.URL.Path, "/")
 	}
+	assert.Equal(t, v.Path, path, assertMsg)
 }
 
 // QueryValidator validates the request query.

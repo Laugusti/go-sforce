@@ -65,10 +65,11 @@ func TestPathValidator(t *testing.T) {
 	}{
 		{"", "http://localhost"},
 		{"/", "http://localhost/"},
-		{"/a", "http://localhost/a"},
-		{"/a/b/c", "http://localhost/a/b/c"},
-		{"/a/", "http://localhost/a/"},
-		{"/a", "http://localhost/a?b=c"},
+		{"", "http://localhost/"},
+		{"a", "http://localhost/a"},
+		{"a/", "http://localhost/a/"},
+		{"a/b/c", "http://localhost/a/b/c"},
+		{"a", "http://localhost/a?b=c"},
 	}
 
 	for _, test := range tests {

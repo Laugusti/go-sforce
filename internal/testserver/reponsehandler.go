@@ -33,3 +33,27 @@ func (h *JSONResponseHandler) Handle(t *testing.T, w http.ResponseWriter, assert
 	w.Header().Set("Content-Type", "application/json")
 	assert.Nil(t, err, assertMsg)
 }
+
+// JSONConsecutiveResponseHandler allows for consective handler calls. The last handler determines the behavior of further calls
+type JSONConsecutiveResponseHandler struct {
+	Handlers []*JSONResponseHandler
+	Count    int
+}
+
+// Handle implements the ResponseHandler interface.
+func (h *JSONConsecutiveResponseHandler) Handle(t *testing.T, w http.ResponseWriter, assertMsg string) {
+	// use handler at count
+	if h.Count >= 0 && h.Count < len(h.Handlers) {
+		h.Handlers[h.Count].Handle(t, w, assertMsg)
+		h.Count++
+		return
+	}
+	// use last handler
+	if len(h.Handlers) > 0 {
+		h.Handlers[len(h.Handlers)-1].Handle(t, w, assertMsg)
+		h.Count++
+		return
+	}
+	assert.GreaterOrEqual(t, h.Count, 0, assertMsg, "negative count")
+	assert.Greater(t, len(h.Handlers), 0, assertMsg, "no handlers")
+}
