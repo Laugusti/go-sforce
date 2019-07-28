@@ -214,6 +214,62 @@ func TestGetSObjectByExternalID(t *testing.T) {
 	}
 }
 
+func TestUpsertSObject(t *testing.T) {
+	client, server := createClientAndServer(t)
+	defer server.Stop()
+
+	tests := []struct {
+		objectType   string
+		objectID     string
+		object       SObject
+		statusCode   int
+		requestCount int
+		errSnippet   string
+	}{
+		{"", "", nil, 0, 0, "sobject name is required"},
+		{"", "A", nil, 0, 0, "sobject name is required"},
+		{"", "A", map[string]interface{}{"A": "one", "B": 2}, 0, 0, "sobject name is required"},
+		{"Object", "", nil, 0, 0, "sobject id is required"},
+		{"Object", "", map[string]interface{}{"A": "one", "B": 2}, 0, 0, "sobject id is required"},
+		{"Object", "A", nil, 0, 0, "sobject value is required"},
+		{"Object", "A", map[string]interface{}{}, 0, 0, "sobject value is required"},
+		{"Object", "A", map[string]interface{}{"A": "one", "B": 2}, 200, 1, ""},
+		{"Object", "A", map[string]interface{}{"A": "one", "B": 2}, 400, 1, "GENERIC_ERROR"},
+	}
+
+	for _, test := range tests {
+		assertMessage := fmt.Sprintf("input: %v", test)
+		path := fmt.Sprintf("/services/data/%s/sobjects/%s/%s", apiVersion, test.objectType,
+			test.objectID)
+		validators := []testserver.RequestValidator{authTokenValidator, jsonContentTypeValidator,
+			emptyQueryValidator, &testserver.JSONBodyValidator{test.object},
+			&testserver.PathValidator{path}}
+
+		// set server response
+		setHandlerFunc(server, t, assertMessage,
+			UpsertResult{ID: test.objectID, Success: true, Errors: []interface{}{}},
+			test.statusCode, test.errSnippet != "", validators...)
+
+		// do request
+		server.RequestCount = 0 // reset counter
+		res, err := client.UpsertSObject(test.objectType, test.objectID, test.object)
+
+		// assertions
+		assert.Equal(t, test.requestCount, server.RequestCount)
+		if test.errSnippet != "" {
+			assert.NotNilf(t, err, "input %v: expected error", test)
+			assert.Containsf(t, err.Error(), test.errSnippet,
+				"input %v: wrong error message: %v", test, err)
+			assert.Nilf(t, res, "input: %v", test)
+		} else {
+			assert.Nilf(t, err, "input %v: unexpected error", test)
+			assert.NotNilf(t, res, "input: %v", test)
+			assert.True(t, res.Success, "input: %v", test)
+			assert.Equal(t, test.objectID, res.ID)
+		}
+	}
+}
+
 func TestUnauthorizedClient(t *testing.T) {
 	client, server := createClientAndServer(t)
 	defer server.Stop()
