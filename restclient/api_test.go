@@ -98,6 +98,107 @@ func TestCreateSObject(t *testing.T) {
 	}
 }
 
+func TestGetSObject(t *testing.T) {
+	client, server := createClientAndServer(t)
+	defer server.Stop()
+
+	tests := []struct {
+		objectType   string
+		objectID     string
+		statusCode   int
+		requestCount int
+		errSnippet   string
+		wantedObject SObject
+	}{
+		{"", "", 0, 0, "sobject name is required", nil},
+		{"", "A", 0, 0, "sobject name is required", nil},
+		{"Object", "", 0, 0, "sobject id is required", nil},
+		{"Object", "A", 200, 1, "", map[string]interface{}{"A": "one", "B": 2.0, "C": true}},
+		{"Object", "A", 400, 1, "GENERIC_ERROR", nil},
+	}
+
+	for _, test := range tests {
+		// set server response
+		server.HandlerFunc = testserver.ValidateJSONBodyHandler(t, nil,
+			test.wantedObject, test.statusCode, fmt.Sprintf("input: %v", test))
+		if test.errSnippet != "" {
+			server.HandlerFunc = testserver.ValidateJSONBodyHandler(t, nil,
+				APIError{Message: "Generic API error", ErrorCode: "GENERIC_ERROR"},
+				test.statusCode, fmt.Sprintf("input: %v", test))
+		}
+
+		// do request
+		server.RequestCount = 0 // reset counter
+		sObj, err := client.GetSObject(test.objectType, test.objectID)
+
+		// assertions
+		assert.Equal(t, test.requestCount, server.RequestCount)
+		if test.errSnippet != "" {
+			assert.NotNilf(t, err, "input %v: expected error", test)
+			assert.Containsf(t, err.Error(), test.errSnippet,
+				"input %v: wrong error message: %v", test, err)
+			assert.Nilf(t, sObj, "input: %v", test)
+		} else {
+			assert.Nilf(t, err, "input %v: unexpected error", test)
+			assert.Equalf(t, test.wantedObject, sObj, "input: %v", test)
+		}
+
+	}
+}
+
+func TestGetSObjectByExternalID(t *testing.T) {
+	client, server := createClientAndServer(t)
+	defer server.Stop()
+
+	tests := []struct {
+		objectType      string
+		externalIDField string
+		externalID      string
+		wantedObject    SObject
+		statusCode      int
+		requestCount    int
+		errSnippet      string
+	}{
+		{"", "", "", nil, 0, 0, "sobject name is required"},
+		{"", "A", "", nil, 0, 0, "sobject name is required"},
+		{"", "A", "a", nil, 0, 0, "sobject name is required"},
+		{"Object", "", "", nil, 0, 0, "external id field is required"},
+		{"Object", "", "a", nil, 0, 0, "external id field is required"},
+		{"Object", "A", "", nil, 0, 0, "external id is required"},
+		{"Object", "A", "a", map[string]interface{}{"A": "one", "B": 2.0, "C": true}, 200, 1, ""},
+		{"Object", "A", "a", nil, 400, 1, "GENERIC_ERROR"},
+	}
+
+	for _, test := range tests {
+		// set server response
+		server.HandlerFunc = testserver.ValidateJSONBodyHandler(t, nil,
+			test.wantedObject, test.statusCode, fmt.Sprintf("input: %v", test))
+		if test.errSnippet != "" {
+			server.HandlerFunc = testserver.ValidateJSONBodyHandler(t, nil,
+				APIError{Message: "Generic API error", ErrorCode: "GENERIC_ERROR"},
+				test.statusCode, fmt.Sprintf("input: %v", test))
+		}
+
+		// do request
+		server.RequestCount = 0 // reset counter
+		sObj, err := client.GetSObjectByExternalID(test.objectType,
+			test.externalIDField, test.externalID)
+
+		// assertions
+		assert.Equal(t, test.requestCount, server.RequestCount)
+		if test.errSnippet != "" {
+			assert.NotNilf(t, err, "input %v: expected error", test)
+			assert.Containsf(t, err.Error(), test.errSnippet,
+				"input %v: wrong error message: %v", test, err)
+			assert.Nilf(t, sObj, "input: %v", test)
+		} else {
+			assert.Nilf(t, err, "input %v: unexpected error", test)
+			assert.Equalf(t, test.wantedObject, sObj, "input: %v", test)
+		}
+
+	}
+}
+
 func TestUnauthorizedClient(t *testing.T) {
 	client, server := createClientAndServer(t)
 	defer server.Stop()
