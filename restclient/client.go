@@ -67,13 +67,21 @@ func (c *Client) doRequest(req *http.Request, result interface{}, validStatuses 
 
 	// login and retry if unauthorized
 	if resp.StatusCode == http.StatusUnauthorized {
-		_ = resp.Body.Close()
 		err := c.sess.Login()
 		if err != nil {
 			return fmt.Errorf("login failed: %v", err)
 		}
-		if resp, err = c.httpClient.Do(req); err != nil {
+		// request body was consumed, resetting
+		if body, err := req.GetBody(); err != nil {
+			return fmt.Errorf("failed to get request body for retry: %v", err)
+		} else {
+			req.Body = body
+		}
+		if retryResp, err := c.httpClient.Do(req); err != nil {
 			return fmt.Errorf("request failed: %v", err)
+		} else {
+			_ = resp.Body.Close()
+			resp = retryResp
 		}
 	}
 

@@ -97,3 +97,35 @@ func TestCreateSObject(t *testing.T) {
 		}
 	}
 }
+
+func TestUnauthorizedClient(t *testing.T) {
+	client, server := createClientAndServer(t)
+	defer server.Stop()
+	// server handler return 401
+
+	server.HandlerFunc = unauthorizedHandler
+	_, err := client.CreateSObject("Object", map[string]interface{}{"A": "B"})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "INVALID_SESSION_ID")
+	// 2 requests (create POST and login POST)
+	assert.Equal(t, 2, server.RequestCount)
+
+	server.RequestCount = 0 // reset counter
+	// 1st request fails, 2nd returns login, other return upsert result
+	server.HandlerFunc = func(w http.ResponseWriter, r *http.Request) {
+		switch server.RequestCount {
+		case 0:
+			t.Error("request count can't be 0")
+		case 1:
+			unauthorizedHandler(w, r)
+		case 2:
+			loginSuccessHandler(w, r)
+		default:
+			testserver.StaticJSONHandler(UpsertResult{"id", true, nil}, http.StatusCreated)(w, r)
+		}
+	}
+	_, err = client.CreateSObject("Object", map[string]interface{}{"A": "B"})
+	assert.Nil(t, err, "client request should've succeeded")
+	// 3 requests (create POST and login POST and retry create POST)
+	assert.Equal(t, 3, server.RequestCount)
+}
