@@ -3,6 +3,7 @@ package testserver
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/textproto"
@@ -29,7 +30,7 @@ func TestHeaderValidator(t *testing.T) {
 		for k, v := range test.headers {
 			req.Header[textproto.CanonicalMIMEHeaderKey(k)] = []string{v}
 		}
-		v.Validate(t, &req)
+		v.Validate(t, &req, fmt.Sprintf("input: %v", test))
 	}
 }
 
@@ -52,6 +53,6 @@ func TestJSONBodyValidator(t *testing.T) {
 			assert.Nil(t, err)
 			req.Body = ioutil.NopCloser(&buf)
 		}
-		v.Validate(t, &req)
+		v.Validate(t, &req, fmt.Sprintf("input: %v", test))
 	}
 }

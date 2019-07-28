@@ -11,7 +11,7 @@ import (
 
 // RequestValidator is an interface with a single method to validate a http request
 type RequestValidator interface {
-	Validate(*testing.T, *http.Request)
+	Validate(*testing.T, *http.Request, string)
 }
 
 // HeaderValidator validates headers on the request
@@ -21,9 +21,9 @@ type HeaderValidator struct {
 }
 
 // Validate implements the RequestValidator interface
-func (v *HeaderValidator) Validate(t *testing.T, r *http.Request) {
+func (v *HeaderValidator) Validate(t *testing.T, r *http.Request, assertMsg string) {
 	got := r.Header.Get(v.Key)
-	assert.Equal(t, v.Value, got)
+	assert.Equal(t, v.Value, got, assertMsg)
 }
 
 // JSONBodyValidator validates the request body as JSON
@@ -32,19 +32,19 @@ type JSONBodyValidator struct {
 }
 
 // Validate implements the RequestValidator interface
-func (v *JSONBodyValidator) Validate(t *testing.T, r *http.Request) {
+func (v *JSONBodyValidator) Validate(t *testing.T, r *http.Request, assertMsg string) {
 	if v.Body == nil {
-		assert.Empty(t, r.Body)
+		assert.Empty(t, r.Body, assertMsg)
 		return
 	}
 	//get expected body as map
 	want, err := jsonObjectToMap(v.Body)
-	assert.Nil(t, err)
+	assert.Nil(t, err, assertMsg)
 	// get request body as map
 	got := make(map[string]interface{})
-	assert.Nil(t, json.NewDecoder(r.Body).Decode(&got))
+	assert.Nil(t, json.NewDecoder(r.Body).Decode(&got), assertMsg)
 	// assert body matches
-	assert.Equal(t, want, got)
+	assert.Equal(t, want, got, assertMsg)
 }
 
 func jsonObjectToMap(v interface{}) (map[string]interface{}, error) {

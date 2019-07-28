@@ -3,6 +3,7 @@ package testserver
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -53,7 +54,7 @@ func TestValidateAndSetResponseHandler(t *testing.T) {
 	headerValidator2 := &HeaderValidator{"Content-Type", "application/json"}
 	bodyValidator := &JSONBodyValidator{reqBody}
 
-	s.HandlerFunc = ValidateAndSetResponseHandler(t, respBody, http.StatusAccepted,
+	s.HandlerFunc = ValidateAndSetResponseHandler(t, fmt.Sprintf("req: %v, resp: %v", reqBody, respBody), respBody, http.StatusAccepted,
 		headerValidator1, headerValidator2, bodyValidator)
 
 	// get response using http client
