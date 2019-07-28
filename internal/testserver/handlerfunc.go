@@ -18,6 +18,7 @@ func ValidateAndSetResponseHandler(t *testing.T, assertMessage string, body inte
 		// write response
 		if body == nil {
 			w.WriteHeader(statusCode)
+			return
 		}
 		b, err := json.Marshal(body)
 		assert.Nil(t, err, assertMessage)
@@ -30,10 +31,4 @@ func ValidateAndSetResponseHandler(t *testing.T, assertMessage string, body inte
 // StaticJSONHandler creates reponse by marshalling the value as a json.
 func StaticJSONHandler(t *testing.T, body interface{}, statusCode int) http.HandlerFunc {
 	return ValidateAndSetResponseHandler(t, "", body, statusCode)
-}
-
-// ValidateJSONBodyHandler validates the request body, then sets the response body and status.
-func ValidateJSONBodyHandler(t *testing.T, wantedRequestBody, respBody interface{},
-	responseCode int, assertMessage string) http.HandlerFunc {
-	return ValidateAndSetResponseHandler(t, "", respBody, responseCode, &JSONBodyValidator{wantedRequestBody})
 }

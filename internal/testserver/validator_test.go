@@ -104,3 +104,20 @@ func TestQueryValidator(t *testing.T) {
 		v.Validate(t, &req, fmt.Sprintf("input: %v", test))
 	}
 }
+
+func TestJSONObjectToMap(t *testing.T) {
+	tests := []struct {
+		object interface{}
+		want   map[string]interface{}
+	}{
+		{struct{ A string }{"value"}, map[string]interface{}{"A": "value"}},
+		{struct{ B int }{3}, map[string]interface{}{"B": 3.0}},
+		{struct{ C bool }{true}, map[string]interface{}{"C": true}},
+	}
+
+	for _, test := range tests {
+		got, err := jsonObjectToMap(test.object)
+		assert.Nil(t, err)
+		assert.Equal(t, test.want, got)
+	}
+}

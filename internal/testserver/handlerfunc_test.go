@@ -16,24 +16,31 @@ func TestStaticJSONHandler(t *testing.T) {
 	s := New(t)
 	defer s.Stop()
 
-	// set server response to static json
-	want := map[string]interface{}{
-		"field1": "one",
-		"field2": 2.0,
+	tests := []struct {
+		body       interface{}
+		statusCode int
+	}{
+		{nil, 204},
+		{map[string]interface{}{"field1": "one", "field2": 2.0}, 200},
+		{struct{ A string }{"reponse"}, 200},
 	}
-	s.HandlerFunc = StaticJSONHandler(t, want, http.StatusCreated)
+	for i, test := range tests {
+		assertMsg := fmt.Sprintf("input: %v", test)
+		// set server response to static json
+		s.HandlerFunc = StaticJSONHandler(t, test.body, test.statusCode)
 
-	// get response using http client
-	resp, err := s.Client().Get(s.URL())
-	assert.Nil(t, err)
-	defer func() { _ = resp.Body.Close() }()
+		// get response using http client
+		resp, err := s.Client().Get(s.URL())
+		if !assert.NoError(t, err, assertMsg) {
+			t.Fatal("missing response")
+		}
+		defer func() { assert.Nil(t, resp.Body.Close(), assertMsg) }()
 
-	// assert response body matches expected
-	assert.Equal(t, resp.StatusCode, http.StatusCreated)
-	got := make(map[string]interface{})
-	err = json.NewDecoder(resp.Body).Decode(&got)
-	assert.Nil(t, err)
-	assert.Equal(t, want, got)
+		// assert response body matches expected
+		assert.Equal(t, i+1, s.RequestCount, assertMsg)
+		assert.Equal(t, test.statusCode, resp.StatusCode, assertMsg)
+		assertExepctedBody(t, test.body, resp, assertMsg)
+	}
 }
 
 func TestValidateAndSetResponseHandler(t *testing.T) {
@@ -41,94 +48,71 @@ func TestValidateAndSetResponseHandler(t *testing.T) {
 	s := New(t)
 	defer s.Stop()
 
-	// set server handler
-	reqBody := map[string]interface{}{
-		"field1": "one",
-		"field2": 2.0,
-	}
-	respBody := map[string]interface{}{
-		"field2": "one",
-		"field1": 2.0,
-	}
-
-	headerValidator1 := &HeaderValidator{"Key", "Value"}
-	headerValidator2 := &HeaderValidator{"Content-Type", "application/json"}
-	bodyValidator := &JSONBodyValidator{reqBody}
-	pathValidator := &PathValidator{"/path/to/resource"}
-	q, err := url.ParseQuery("q=query&s=test")
-	assert.Nil(t, err)
-	queryValidator := &QueryValidator{q}
-
-	s.HandlerFunc = ValidateAndSetResponseHandler(t, fmt.Sprintf("req: %v, resp: %v", reqBody, respBody), respBody, http.StatusAccepted,
-		headerValidator1, headerValidator2, bodyValidator, pathValidator, queryValidator)
-
-	// get response using http client
-	var buf bytes.Buffer
-	err = json.NewEncoder(&buf).Encode(reqBody)
-	assert.Nil(t, err)
-	req, err := http.NewRequest(http.MethodPost, s.URL()+"/path/to/resource?q=query&s=test", &buf)
-	assert.Nil(t, err)
-	req.Header.Set("Key", "Value")
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := s.Client().Do(req)
-	if !assert.NoError(t, err) {
-		t.Fatal("need response")
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	// assert response body matches expected
-	assert.Equal(t, resp.StatusCode, http.StatusAccepted)
-	got := make(map[string]interface{})
-	err = json.NewDecoder(resp.Body).Decode(&got)
-	assert.Nil(t, err)
-	assert.Equal(t, respBody, got)
-}
-
-func TestValidateJSONBodyHandler(t *testing.T) {
-	// start server
-	s := New(t)
-	defer s.Stop()
-
-	// set server handler
-	reqBody := map[string]interface{}{
-		"field1": "one",
-		"field2": 2.0,
-	}
-	respBody := map[string]interface{}{
-		"field2": "one",
-		"field1": 2.0,
-	}
-	s.HandlerFunc = ValidateJSONBodyHandler(t, reqBody, respBody, http.StatusAccepted, "wrong body")
-
-	// get response using http client
-	var buf bytes.Buffer
-	err := json.NewEncoder(&buf).Encode(reqBody)
-	assert.Nil(t, err)
-	resp, err := s.Client().Post(s.URL(), "application/json", &buf)
-	assert.Nil(t, err)
-	defer func() { _ = resp.Body.Close() }()
-
-	// assert response body matches expected
-	assert.Equal(t, resp.StatusCode, http.StatusAccepted)
-	got := make(map[string]interface{})
-	err = json.NewDecoder(resp.Body).Decode(&got)
-	assert.Nil(t, err)
-	assert.Equal(t, respBody, got)
-}
-
-func TestJSONObjectToMap(t *testing.T) {
 	tests := []struct {
-		object interface{}
-		want   map[string]interface{}
+		reqBody    interface{}
+		respBody   interface{}
+		path       string
+		rawHeaders string
+		rawQuery   string
+		statusCode int
 	}{
-		{struct{ A string }{"value"}, map[string]interface{}{"A": "value"}},
-		{struct{ B int }{3}, map[string]interface{}{"B": 3.0}},
-		{struct{ C bool }{true}, map[string]interface{}{"C": true}},
+		{nil, nil, "", "", "", 200},
+		{map[string]interface{}{"A": "a", "B": 2.0}, nil, "", "", "", 200},
+		{nil, nil, "api/path", "q=query", "A=a&Content-Type=application/json", 400},
+		{nil, nil, "api/path", "q=query", "A=a&Content-Type=application/json", 400},
+		{struct{ A string }{"request"}, struct{ A string }{"response"}, "path", "a=1,2&b=3,4,5", "a=1,2&b=3,4,5", 202},
 	}
 
-	for _, test := range tests {
-		got, err := jsonObjectToMap(test.object)
-		assert.Nil(t, err)
-		assert.Equal(t, test.want, got)
+	for i, test := range tests {
+		assertMsg := fmt.Sprintf("input: %v", test)
+
+		query, err := url.ParseQuery(test.rawQuery)
+		assert.Nil(t, err, assertMsg)
+		headers, err := url.ParseQuery(test.rawHeaders)
+		assert.Nil(t, err, assertMsg)
+
+		var buf bytes.Buffer
+		if test.reqBody != nil {
+			err = json.NewEncoder(&buf).Encode(test.reqBody)
+			assert.Nil(t, err, assertMsg)
+		}
+		req, err := http.NewRequest(http.MethodGet,
+			fmt.Sprintf("%s/%s?%s", s.URL(), test.path, test.rawQuery),
+			&buf)
+		assert.Nil(t, err, assertMsg)
+
+		validators := []RequestValidator{&JSONBodyValidator{test.reqBody},
+			&PathValidator{test.path}, &QueryValidator{query}}
+		for k := range headers {
+			v := headers.Get(k)
+			req.Header.Set(k, v)
+			validators = append(validators, &HeaderValidator{k, v})
+		}
+
+		s.HandlerFunc = ValidateAndSetResponseHandler(t, assertMsg,
+			test.respBody, test.statusCode, validators...)
+		resp, err := s.Client().Do(req)
+		if !assert.NoError(t, err, assertMsg) {
+			t.Fatal("missing response")
+		}
+		defer func() { assert.Nil(t, resp.Body.Close(), assertMsg) }()
+
+		assert.Equal(t, i+1, s.RequestCount, assertMsg)
+		assert.Equal(t, test.statusCode, resp.StatusCode, assertMsg)
+		assertExepctedBody(t, test.respBody, resp, assertMsg)
+
+	}
+}
+
+func assertExepctedBody(t *testing.T, want interface{}, resp *http.Response, assertMsg string) {
+	if want == nil {
+		assert.Empty(t, resp.Body, assertMsg)
+	} else {
+		want, err := jsonObjectToMap(want)
+		assert.Nil(t, err, assertMsg)
+		got := make(map[string]interface{})
+		err = json.NewDecoder(resp.Body).Decode(&got)
+		assert.Nil(t, err, assertMsg)
+		assert.Equal(t, want, got, assertMsg)
 	}
 }

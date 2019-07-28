@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -55,7 +56,11 @@ type PathValidator struct {
 
 // Validate implements the RequestValidator interface.
 func (v *PathValidator) Validate(t *testing.T, r *http.Request, assertMsg string) {
-	assert.Equal(t, v.Path, r.URL.Path, assertMsg)
+	if !strings.HasPrefix(v.Path, "/") {
+		assert.Equal(t, v.Path, strings.TrimPrefix(r.URL.Path, "/"), assertMsg)
+	} else {
+		assert.Equal(t, v.Path, r.URL.Path, assertMsg)
+	}
 }
 
 // QueryValidator validates the request query.
