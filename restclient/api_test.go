@@ -58,7 +58,7 @@ func createClientAndServer(t *testing.T) (*Client, *testserver.Server) {
 	if err := sess.Login(); err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, 1, s.RequestCount)
+	assert.Equal(t, 1, s.RequestCount, "expected single request (login)")
 	s.RequestCount = 0 // reset counter
 
 	// create client
@@ -87,33 +87,26 @@ func TestCreateSObject(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		assertMessage := fmt.Sprintf("input: %v", test)
+		assertMsg := fmt.Sprintf("input: %v", test)
 		path := fmt.Sprintf("/services/data/%s/sobjects/%s", apiVersion, test.objectType)
 		validators := []testserver.RequestValidator{authTokenValidator, jsonContentTypeValidator,
 			emptyQueryValidator, &testserver.JSONBodyValidator{Body: test.object},
 			&testserver.PathValidator{Path: path}}
-
-		// set server response
-		setHandlerFunc(server, t, assertMessage,
-			UpsertResult{ID: "id", Success: true, Errors: []interface{}{}},
-			test.statusCode, test.errSnippet != "", validators...)
-
-		// do request
-		server.RequestCount = 0 // reset counter
-		res, err := client.CreateSObject(test.objectType, test.object)
-
-		// assertions
-		assert.Equal(t, test.requestCount, server.RequestCount)
-		if test.errSnippet != "" {
-			assert.NotNilf(t, err, "input %v: expected error", test)
-			assert.Containsf(t, err.Error(), test.errSnippet,
-				"input %v: wrong error message: %v", test, err)
-			assert.Nilf(t, res, "input: %v", test)
-		} else {
-			assert.Nilf(t, err, "input %v: unexpected error", test)
-			assert.NotNilf(t, res, "input: %v", test)
-			assert.True(t, res.Success, "input: %v", test)
+		requestFunc := func() (interface{}, error) {
+			return client.CreateSObject(test.objectType, test.object)
 		}
+		successFunc := func(res interface{}) {
+			if assert.NotNil(t, res, assertMsg) {
+				assert.True(t, res.(*UpsertResult).Success, assertMsg)
+			}
+		}
+		handler := &testserver.JSONResponseHandler{
+			StatusCode: test.statusCode,
+			Body:       UpsertResult{ID: "id", Success: true, Errors: []interface{}{}},
+		}
+
+		assertRequest(t, assertMsg, server, test.errSnippet, requestFunc, successFunc,
+			test.requestCount, validators, handler)
 	}
 }
 
@@ -137,32 +130,27 @@ func TestGetSObject(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		assertMessage := fmt.Sprintf("input: %v", test)
+		assertMsg := fmt.Sprintf("input: %v", test)
 		path := fmt.Sprintf("/services/data/%s/sobjects/%s/%s", apiVersion, test.objectType,
 			test.objectID)
 		validators := []testserver.RequestValidator{authTokenValidator, jsonContentTypeValidator,
 			emptyQueryValidator, emptyBodyValidator, &testserver.PathValidator{Path: path}}
 
-		// set server response
-		setHandlerFunc(server, t, assertMessage, test.wantedObject, test.statusCode,
-			test.errSnippet != "", validators...)
-
-		// do request
-		server.RequestCount = 0 // reset counter
-		sObj, err := client.GetSObject(test.objectType, test.objectID)
-
-		// assertions
-		assert.Equal(t, test.requestCount, server.RequestCount)
-		if test.errSnippet != "" {
-			assert.NotNilf(t, err, "input %v: expected error", test)
-			assert.Containsf(t, err.Error(), test.errSnippet,
-				"input %v: wrong error message: %v", test, err)
-			assert.Nilf(t, sObj, "input: %v", test)
-		} else {
-			assert.Nilf(t, err, "input %v: unexpected error", test)
-			assert.Equalf(t, test.wantedObject, sObj, "input: %v", test)
+		requestFunc := func() (interface{}, error) {
+			return client.GetSObject(test.objectType, test.objectID)
+		}
+		successFunc := func(res interface{}) {
+			if assert.NotNil(t, res, assertMsg) {
+				assert.Equal(t, test.wantedObject, res, assertMsg)
+			}
+		}
+		handler := &testserver.JSONResponseHandler{
+			StatusCode: test.statusCode,
+			Body:       test.wantedObject,
 		}
 
+		assertRequest(t, assertMsg, server, test.errSnippet, requestFunc, successFunc,
+			test.requestCount, validators, handler)
 	}
 }
 
@@ -190,33 +178,28 @@ func TestGetSObjectByExternalID(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		assertMessage := fmt.Sprintf("input: %v", test)
+		assertMsg := fmt.Sprintf("input: %v", test)
 		path := fmt.Sprintf("/services/data/%s/sobjects/%s/%s/%s", apiVersion, test.objectType,
 			test.externalIDField, test.externalID)
 		validators := []testserver.RequestValidator{authTokenValidator, jsonContentTypeValidator,
 			emptyQueryValidator, emptyBodyValidator, &testserver.PathValidator{Path: path}}
 
-		// set server response
-		setHandlerFunc(server, t, assertMessage, test.wantedObject, test.statusCode,
-			test.errSnippet != "", validators...)
-
-		// do request
-		server.RequestCount = 0 // reset counter
-		sObj, err := client.GetSObjectByExternalID(test.objectType,
-			test.externalIDField, test.externalID)
-
-		// assertions
-		assert.Equal(t, test.requestCount, server.RequestCount)
-		if test.errSnippet != "" {
-			assert.NotNilf(t, err, "input %v: expected error", test)
-			assert.Containsf(t, err.Error(), test.errSnippet,
-				"input %v: wrong error message: %v", test, err)
-			assert.Nilf(t, sObj, "input: %v", test)
-		} else {
-			assert.Nilf(t, err, "input %v: unexpected error", test)
-			assert.Equalf(t, test.wantedObject, sObj, "input: %v", test)
+		requestFunc := func() (interface{}, error) {
+			return client.GetSObjectByExternalID(test.objectType,
+				test.externalIDField, test.externalID)
+		}
+		successFunc := func(res interface{}) {
+			if assert.NotNil(t, res, assertMsg) {
+				assert.Equal(t, test.wantedObject, res, assertMsg)
+			}
+		}
+		handler := &testserver.JSONResponseHandler{
+			StatusCode: test.statusCode,
+			Body:       test.wantedObject,
 		}
 
+		assertRequest(t, assertMsg, server, test.errSnippet, requestFunc, successFunc,
+			test.requestCount, validators, handler)
 	}
 }
 
@@ -244,35 +227,29 @@ func TestUpsertSObject(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		assertMessage := fmt.Sprintf("input: %v", test)
+		assertMsg := fmt.Sprintf("input: %v", test)
 		path := fmt.Sprintf("/services/data/%s/sobjects/%s/%s", apiVersion, test.objectType,
 			test.objectID)
 		validators := []testserver.RequestValidator{authTokenValidator, jsonContentTypeValidator,
 			emptyQueryValidator, &testserver.JSONBodyValidator{Body: test.object},
 			&testserver.PathValidator{Path: path}}
 
-		// set server response
-		setHandlerFunc(server, t, assertMessage,
-			UpsertResult{ID: test.objectID, Success: true, Errors: []interface{}{}},
-			test.statusCode, test.errSnippet != "", validators...)
-
-		// do request
-		server.RequestCount = 0 // reset counter
-		res, err := client.UpsertSObject(test.objectType, test.objectID, test.object)
-
-		// assertions
-		assert.Equal(t, test.requestCount, server.RequestCount)
-		if test.errSnippet != "" {
-			assert.NotNilf(t, err, "input %v: expected error", test)
-			assert.Containsf(t, err.Error(), test.errSnippet,
-				"input %v: wrong error message: %v", test, err)
-			assert.Nilf(t, res, "input: %v", test)
-		} else {
-			assert.Nilf(t, err, "input %v: unexpected error", test)
-			assert.NotNilf(t, res, "input: %v", test)
-			assert.True(t, res.Success, "input: %v", test)
-			assert.Equal(t, test.objectID, res.ID)
+		requestFunc := func() (interface{}, error) {
+			return client.UpsertSObject(test.objectType, test.objectID, test.object)
 		}
+		successFunc := func(res interface{}) {
+			if assert.NotNil(t, res, assertMsg) {
+				assert.True(t, res.(*UpsertResult).Success, assertMsg)
+				assert.Equal(t, test.objectID, res.(*UpsertResult).ID, assertMsg)
+			}
+		}
+		handler := &testserver.JSONResponseHandler{
+			StatusCode: test.statusCode,
+			Body:       UpsertResult{ID: test.objectID, Success: true, Errors: []interface{}{}},
+		}
+
+		assertRequest(t, assertMsg, server, test.errSnippet, requestFunc, successFunc,
+			test.requestCount, validators, handler)
 	}
 }
 
@@ -305,34 +282,29 @@ func TestUpsertSObjectByExternalID(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		assertMessage := fmt.Sprintf("input: %v", test)
+		assertMsg := fmt.Sprintf("input: %v", test)
 		path := fmt.Sprintf("/services/data/%s/sobjects/%s/%s/%s", apiVersion, test.objectType,
 			test.externalIDField, test.externalID)
 		validators := []testserver.RequestValidator{authTokenValidator, jsonContentTypeValidator,
 			emptyQueryValidator, &testserver.JSONBodyValidator{Body: test.object},
 			&testserver.PathValidator{Path: path}}
 
-		// set server response
-		setHandlerFunc(server, t, assertMessage,
-			UpsertResult{ID: "id", Success: true, Errors: []interface{}{}},
-			test.statusCode, test.errSnippet != "", validators...)
-
-		// do request
-		server.RequestCount = 0 // reset counter
-		res, err := client.UpsertSObjectByExternalID(test.objectType, test.externalIDField, test.externalID, test.object)
-
-		// assertions
-		assert.Equal(t, test.requestCount, server.RequestCount)
-		if test.errSnippet != "" {
-			assert.NotNilf(t, err, "input %v: expected error", test)
-			assert.Containsf(t, err.Error(), test.errSnippet,
-				"input %v: wrong error message: %v", test, err)
-			assert.Nilf(t, res, "input: %v", test)
-		} else {
-			assert.Nilf(t, err, "input %v: unexpected error", test)
-			assert.NotNilf(t, res, "input: %v", test)
-			assert.True(t, res.Success, "input: %v", test)
+		requestFunc := func() (interface{}, error) {
+			return client.UpsertSObjectByExternalID(test.objectType, test.externalIDField,
+				test.externalID, test.object)
 		}
+		successFunc := func(res interface{}) {
+			if assert.NotNil(t, res, assertMsg) {
+				assert.True(t, res.(*UpsertResult).Success, assertMsg)
+			}
+		}
+		handler := &testserver.JSONResponseHandler{
+			StatusCode: test.statusCode,
+			Body:       UpsertResult{ID: "id", Success: true, Errors: []interface{}{}},
+		}
+
+		assertRequest(t, assertMsg, server, test.errSnippet, requestFunc, successFunc,
+			test.requestCount, validators, handler)
 	}
 }
 
@@ -343,10 +315,9 @@ func TestUnauthorizedClient(t *testing.T) {
 
 	server.HandlerFunc = unauthorizedHandler
 	_, err := client.CreateSObject("Object", map[string]interface{}{"A": "B"})
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "INVALID_SESSION_ID")
-	// 2 requests (create POST and login POST)
-	assert.Equal(t, 2, server.RequestCount)
+	assert.NotNil(t, err, "expected client error")
+	assert.Contains(t, err.Error(), "INVALID_SESSION_ID", "expected invalid session response")
+	assert.Equal(t, 2, server.RequestCount, "expected 2 request (create and login)")
 
 	server.RequestCount = 0 // reset counter
 	// 1st request fails, 2nd returns login, other return upsert result
@@ -365,16 +336,35 @@ func TestUnauthorizedClient(t *testing.T) {
 	_, err = client.CreateSObject("Object", map[string]interface{}{"A": "B"})
 	assert.Nil(t, err, "client request should've succeeded")
 	// 3 requests (create POST and login POST and retry create POST)
-	assert.Equal(t, 3, server.RequestCount)
+	assert.Equal(t, 3, server.RequestCount, "expected 3 requests (create, login, retry)")
 }
 
-func setHandlerFunc(server *testserver.Server, t *testing.T, assertMessage string,
-	responseBody interface{}, responseStatus int, apiError bool, validators ...testserver.RequestValidator) {
-	if apiError {
-		responseBody = genericErr
-	}
-
+func assertRequest(t *testing.T, assertMsg string, server *testserver.Server, wantErr string,
+	invokeFunc func() (interface{}, error), successFunc func(interface{}),
+	expectedRequestCount int, validators []testserver.RequestValidator,
+	respHandler *testserver.JSONResponseHandler) {
+	shouldErr := wantErr != ""
 	// set server response
-	server.HandlerFunc = testserver.ValidateAndSetResponseHandler(t, assertMessage,
-		responseBody, responseStatus, validators...)
+	if shouldErr {
+		respHandler.Body = genericErr
+	}
+	server.HandlerFunc = testserver.ValidateAndSetResponseHandler(t, assertMsg, respHandler, validators...)
+
+	// invoke request
+	server.RequestCount = 0 // reset counter
+	res, err := invokeFunc()
+
+	// assertions
+	assert.Equal(t, expectedRequestCount, server.RequestCount, assertMsg)
+	if shouldErr {
+		if assert.Error(t, err, assertMsg) {
+			assert.Contains(t, err.Error(), wantErr, assertMsg)
+		}
+		assert.Nil(t, res, assertMsg)
+	} else {
+		assert.Nil(t, err, assertMsg)
+		if successFunc != nil {
+			successFunc(res)
+		}
+	}
 }
