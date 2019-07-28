@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/Laugusti/go-sforce/credentials"
@@ -14,6 +15,7 @@ import (
 
 const (
 	accessToken = "MOCK_TOKEN"
+	apiVersion  = "mock"
 )
 
 var (
@@ -29,6 +31,15 @@ var (
 		Message:   "Session expired or invalid",
 		ErrorCode: "INVALID_SESSION_ID",
 	}, http.StatusUnauthorized)
+
+	// api error
+	genericApiError = APIError{Message: "Generic API error", ErrorCode: "GENERIC_ERROR"}
+
+	// request validators
+	jsonContentTypeValidator = &testserver.HeaderValidator{"Content-Type", "application/json"}
+	authTokenValidator       = &testserver.HeaderValidator{"Authorization", "Bearer " + accessToken}
+	emptyQueryValidator      = &testserver.QueryValidator{url.Values{}}
+	emptyBodyValidator       = &testserver.JSONBodyValidator{nil}
 )
 
 func createClientAndServer(t *testing.T) (*Client, *testserver.Server) {
@@ -37,7 +48,7 @@ func createClientAndServer(t *testing.T) (*Client, *testserver.Server) {
 
 	// create session and login
 	s.HandlerFunc = loginSuccessHandler
-	sess := session.Must(session.New(s.URL(), "version", credentials.New("user", "pass", "cid", "csecret")))
+	sess := session.Must(session.New(s.URL(), apiVersion, credentials.New("user", "pass", "cid", "csecret")))
 	if err := sess.Login(); err != nil {
 		t.Fatal(err)
 	}
@@ -70,19 +81,22 @@ func TestCreateSObject(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		assertMessage := fmt.Sprintf("input: %v", test)
+		path := fmt.Sprintf("/services/data/%s/sobjects/%s", apiVersion, test.objectType)
+		validators := []testserver.RequestValidator{authTokenValidator, jsonContentTypeValidator,
+			emptyQueryValidator, &testserver.JSONBodyValidator{test.object},
+			&testserver.PathValidator{path}}
+
 		// set server response
-		server.HandlerFunc = testserver.ValidateJSONBodyHandler(t, test.object,
+		setHandlerFunc(server, t, assertMessage,
 			UpsertResult{ID: "id", Success: true, Errors: []interface{}{}},
-			test.statusCode, fmt.Sprintf("input: %v", test))
-		if test.errSnippet != "" {
-			server.HandlerFunc = testserver.ValidateJSONBodyHandler(t, test.object,
-				APIError{Message: "Generic API error", ErrorCode: "GENERIC_ERROR"},
-				test.statusCode, fmt.Sprintf("input: %v", test))
-		}
+			test.statusCode, test.errSnippet != "", validators...)
 
 		// do request
 		server.RequestCount = 0 // reset counter
 		res, err := client.CreateSObject(test.objectType, test.object)
+
+		// assertions
 		assert.Equal(t, test.requestCount, server.RequestCount)
 		if test.errSnippet != "" {
 			assert.NotNilf(t, err, "input %v: expected error", test)
@@ -117,14 +131,15 @@ func TestGetSObject(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		assertMessage := fmt.Sprintf("input: %v", test)
+		path := fmt.Sprintf("/services/data/%s/sobjects/%s/%s", apiVersion, test.objectType,
+			test.objectID)
+		validators := []testserver.RequestValidator{authTokenValidator, jsonContentTypeValidator,
+			emptyQueryValidator, emptyBodyValidator, &testserver.PathValidator{path}}
+
 		// set server response
-		server.HandlerFunc = testserver.ValidateJSONBodyHandler(t, nil,
-			test.wantedObject, test.statusCode, fmt.Sprintf("input: %v", test))
-		if test.errSnippet != "" {
-			server.HandlerFunc = testserver.ValidateJSONBodyHandler(t, nil,
-				APIError{Message: "Generic API error", ErrorCode: "GENERIC_ERROR"},
-				test.statusCode, fmt.Sprintf("input: %v", test))
-		}
+		setHandlerFunc(server, t, assertMessage, test.wantedObject, test.statusCode,
+			test.errSnippet != "", validators...)
 
 		// do request
 		server.RequestCount = 0 // reset counter
@@ -169,14 +184,15 @@ func TestGetSObjectByExternalID(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		assertMessage := fmt.Sprintf("input: %v", test)
+		path := fmt.Sprintf("/services/data/%s/sobjects/%s/%s/%s", apiVersion, test.objectType,
+			test.externalIDField, test.externalID)
+		validators := []testserver.RequestValidator{authTokenValidator, jsonContentTypeValidator,
+			emptyQueryValidator, emptyBodyValidator, &testserver.PathValidator{path}}
+
 		// set server response
-		server.HandlerFunc = testserver.ValidateJSONBodyHandler(t, nil,
-			test.wantedObject, test.statusCode, fmt.Sprintf("input: %v", test))
-		if test.errSnippet != "" {
-			server.HandlerFunc = testserver.ValidateJSONBodyHandler(t, nil,
-				APIError{Message: "Generic API error", ErrorCode: "GENERIC_ERROR"},
-				test.statusCode, fmt.Sprintf("input: %v", test))
-		}
+		setHandlerFunc(server, t, assertMessage, test.wantedObject, test.statusCode,
+			test.errSnippet != "", validators...)
 
 		// do request
 		server.RequestCount = 0 // reset counter
@@ -228,4 +244,15 @@ func TestUnauthorizedClient(t *testing.T) {
 	assert.Nil(t, err, "client request should've succeeded")
 	// 3 requests (create POST and login POST and retry create POST)
 	assert.Equal(t, 3, server.RequestCount)
+}
+
+func setHandlerFunc(server *testserver.Server, t *testing.T, assertMessage string,
+	responseBody interface{}, responseStatus int, apiError bool, validators ...testserver.RequestValidator) {
+	if apiError {
+		responseBody = genericApiError
+	}
+
+	// set server response
+	server.HandlerFunc = testserver.ValidateAndSetResponseHandler(t, assertMessage,
+		responseBody, responseStatus, validators...)
 }
