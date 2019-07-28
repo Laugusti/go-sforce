@@ -33,13 +33,19 @@ var (
 	}, http.StatusUnauthorized)
 
 	// api error
-	genericApiError = APIError{Message: "Generic API error", ErrorCode: "GENERIC_ERROR"}
+	genericErr = APIError{Message: "Generic API error", ErrorCode: "GENERIC_ERROR"}
 
 	// request validators
-	jsonContentTypeValidator = &testserver.HeaderValidator{"Content-Type", "application/json"}
-	authTokenValidator       = &testserver.HeaderValidator{"Authorization", "Bearer " + accessToken}
-	emptyQueryValidator      = &testserver.QueryValidator{url.Values{}}
-	emptyBodyValidator       = &testserver.JSONBodyValidator{nil}
+	jsonContentTypeValidator = &testserver.HeaderValidator{
+		Key:   "Content-Type",
+		Value: "application/json",
+	}
+	authTokenValidator = &testserver.HeaderValidator{
+		Key:   "Authorization",
+		Value: "Bearer " + accessToken,
+	}
+	emptyQueryValidator = &testserver.QueryValidator{Query: url.Values{}}
+	emptyBodyValidator  = &testserver.JSONBodyValidator{Body: nil}
 )
 
 func createClientAndServer(t *testing.T) (*Client, *testserver.Server) {
@@ -84,8 +90,8 @@ func TestCreateSObject(t *testing.T) {
 		assertMessage := fmt.Sprintf("input: %v", test)
 		path := fmt.Sprintf("/services/data/%s/sobjects/%s", apiVersion, test.objectType)
 		validators := []testserver.RequestValidator{authTokenValidator, jsonContentTypeValidator,
-			emptyQueryValidator, &testserver.JSONBodyValidator{test.object},
-			&testserver.PathValidator{path}}
+			emptyQueryValidator, &testserver.JSONBodyValidator{Body: test.object},
+			&testserver.PathValidator{Path: path}}
 
 		// set server response
 		setHandlerFunc(server, t, assertMessage,
@@ -135,7 +141,7 @@ func TestGetSObject(t *testing.T) {
 		path := fmt.Sprintf("/services/data/%s/sobjects/%s/%s", apiVersion, test.objectType,
 			test.objectID)
 		validators := []testserver.RequestValidator{authTokenValidator, jsonContentTypeValidator,
-			emptyQueryValidator, emptyBodyValidator, &testserver.PathValidator{path}}
+			emptyQueryValidator, emptyBodyValidator, &testserver.PathValidator{Path: path}}
 
 		// set server response
 		setHandlerFunc(server, t, assertMessage, test.wantedObject, test.statusCode,
@@ -188,7 +194,7 @@ func TestGetSObjectByExternalID(t *testing.T) {
 		path := fmt.Sprintf("/services/data/%s/sobjects/%s/%s/%s", apiVersion, test.objectType,
 			test.externalIDField, test.externalID)
 		validators := []testserver.RequestValidator{authTokenValidator, jsonContentTypeValidator,
-			emptyQueryValidator, emptyBodyValidator, &testserver.PathValidator{path}}
+			emptyQueryValidator, emptyBodyValidator, &testserver.PathValidator{Path: path}}
 
 		// set server response
 		setHandlerFunc(server, t, assertMessage, test.wantedObject, test.statusCode,
@@ -242,8 +248,8 @@ func TestUpsertSObject(t *testing.T) {
 		path := fmt.Sprintf("/services/data/%s/sobjects/%s/%s", apiVersion, test.objectType,
 			test.objectID)
 		validators := []testserver.RequestValidator{authTokenValidator, jsonContentTypeValidator,
-			emptyQueryValidator, &testserver.JSONBodyValidator{test.object},
-			&testserver.PathValidator{path}}
+			emptyQueryValidator, &testserver.JSONBodyValidator{Body: test.object},
+			&testserver.PathValidator{Path: path}}
 
 		// set server response
 		setHandlerFunc(server, t, assertMessage,
@@ -305,7 +311,7 @@ func TestUnauthorizedClient(t *testing.T) {
 func setHandlerFunc(server *testserver.Server, t *testing.T, assertMessage string,
 	responseBody interface{}, responseStatus int, apiError bool, validators ...testserver.RequestValidator) {
 	if apiError {
-		responseBody = genericApiError
+		responseBody = genericErr
 	}
 
 	// set server response
