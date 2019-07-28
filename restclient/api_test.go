@@ -350,6 +350,57 @@ func TestDeleteSObject(t *testing.T) {
 	}
 }
 
+func TestQuery(t *testing.T) {
+	client, server := createClientAndServer(t)
+	defer server.Stop()
+
+	tests := []struct {
+		query        string
+		statusCode   int
+		requestCount int
+		errSnippet   string
+		done         bool
+		totalSize    int
+		nextURL      string
+		records      []SObject
+	}{
+		{"", 0, 0, "query string is required", false, 0, "", nil},
+		{"query", 200, 1, "", true, 1, "", []SObject{map[string]interface{}{"A": 1.0, "B": "two", "C": false}}},
+		{"query", 400, 1, "GENERIC_ERROR", true, 1, "", []SObject{}},
+		{"query", 200, 1, "", false, 3, server.URL(), []SObject{map[string]interface{}{"A": "a"}, map[string]interface{}{"A": "a"}}},
+	}
+
+	for _, test := range tests {
+		assertMsg := fmt.Sprintf("input: %v", test)
+		path := fmt.Sprintf("/services/data/%s/query", apiVersion)
+		q, err := url.ParseQuery("q=" + test.query)
+		assert.Nil(t, err, assertMsg)
+		validators := []testserver.RequestValidator{authTokenValidator, jsonContentTypeValidator,
+			&testserver.QueryValidator{Query: q}, emptyBodyValidator,
+			&testserver.PathValidator{Path: path}, getMethodValidator}
+
+		want := &QueryResult{
+			Done:           test.done,
+			NextRecordsURL: test.nextURL,
+			TotalSize:      test.totalSize,
+			Records:        test.records,
+		}
+		requestFunc := func() (interface{}, error) {
+			return client.Query(test.query)
+		}
+		successFunc := func(res interface{}) {
+			assert.Equal(t, want, res, assertMsg)
+		}
+		handler := &testserver.JSONResponseHandler{
+			StatusCode: test.statusCode,
+			Body:       want,
+		}
+
+		assertRequest(t, assertMsg, server, test.errSnippet, requestFunc, successFunc,
+			test.requestCount, validators, handler)
+	}
+}
+
 func TestUnauthorizedClient(t *testing.T) {
 	client, server := createClientAndServer(t)
 	defer server.Stop()
