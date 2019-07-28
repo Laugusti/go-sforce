@@ -72,17 +72,19 @@ func (c *Client) doRequest(req *http.Request, result interface{}, validStatuses 
 			return fmt.Errorf("login failed: %v", err)
 		}
 		// request body was consumed, resetting
-		if body, err := req.GetBody(); err != nil {
+		body, err := req.GetBody()
+		if err != nil {
 			return fmt.Errorf("failed to get request body for retry: %v", err)
-		} else {
-			req.Body = body
 		}
-		if retryResp, err := c.httpClient.Do(req); err != nil {
+		req.Body = body
+		// retry request
+		retryResp, err := c.httpClient.Do(req)
+		if err != nil {
 			return fmt.Errorf("request failed: %v", err)
-		} else {
-			_ = resp.Body.Close()
-			resp = retryResp
 		}
+		// close original body and update to new response
+		_ = resp.Body.Close()
+		resp = retryResp
 	}
 
 	// check status code
