@@ -276,6 +276,66 @@ func TestUpsertSObject(t *testing.T) {
 	}
 }
 
+func TestUpsertSObjectByExternalID(t *testing.T) {
+	client, server := createClientAndServer(t)
+	defer server.Stop()
+
+	tests := []struct {
+		objectType      string
+		externalIDField string
+		externalID      string
+		object          SObject
+		statusCode      int
+		requestCount    int
+		errSnippet      string
+	}{
+		{"", "", "", nil, 0, 0, "sobject name is required"},
+		{"", "A", "", nil, 0, 0, "sobject name is required"},
+		{"", "A", "a", nil, 0, 0, "sobject name is required"},
+		{"", "A", "a", map[string]interface{}{"A": "one", "B": 2}, 0, 0, "sobject name is required"},
+		{"Object", "", "", nil, 0, 0, "external id field is required"},
+		{"Object", "", "a", nil, 0, 0, "external id field is required"},
+		{"Object", "", "a", map[string]interface{}{"A": "one", "B": 2}, 0, 0, "external id field is required"},
+		{"Object", "A", "", nil, 0, 0, "external id is required"},
+		{"Object", "A", "", map[string]interface{}{"A": "one", "B": 2}, 0, 0, "external id is required"},
+		{"Object", "A", "a", nil, 0, 0, "sobject value is required"},
+		{"Object", "A", "a", map[string]interface{}{}, 0, 0, "sobject value is required"},
+		{"Object", "A", "a", map[string]interface{}{"A": "one", "B": 2}, 200, 1, ""},
+		{"Object", "A", "a", map[string]interface{}{"A": "one", "B": 2}, 400, 1, "GENERIC_ERROR"},
+	}
+
+	for _, test := range tests {
+		assertMessage := fmt.Sprintf("input: %v", test)
+		path := fmt.Sprintf("/services/data/%s/sobjects/%s/%s/%s", apiVersion, test.objectType,
+			test.externalIDField, test.externalID)
+		validators := []testserver.RequestValidator{authTokenValidator, jsonContentTypeValidator,
+			emptyQueryValidator, &testserver.JSONBodyValidator{Body: test.object},
+			&testserver.PathValidator{Path: path}}
+
+		// set server response
+		setHandlerFunc(server, t, assertMessage,
+			UpsertResult{ID: "id", Success: true, Errors: []interface{}{}},
+			test.statusCode, test.errSnippet != "", validators...)
+
+		// do request
+		server.RequestCount = 0 // reset counter
+		res, err := client.UpsertSObjectByExternalID(test.objectType, test.externalIDField, test.externalID, test.object)
+
+		// assertions
+		assert.Equal(t, test.requestCount, server.RequestCount)
+		if test.errSnippet != "" {
+			assert.NotNilf(t, err, "input %v: expected error", test)
+			assert.Containsf(t, err.Error(), test.errSnippet,
+				"input %v: wrong error message: %v", test, err)
+			assert.Nilf(t, res, "input: %v", test)
+		} else {
+			assert.Nilf(t, err, "input %v: unexpected error", test)
+			assert.NotNilf(t, res, "input: %v", test)
+			assert.True(t, res.Success, "input: %v", test)
+		}
+	}
+}
+
 func TestUnauthorizedClient(t *testing.T) {
 	client, server := createClientAndServer(t)
 	defer server.Stop()
