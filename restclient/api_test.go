@@ -36,16 +36,14 @@ var (
 	genericErr = APIError{Message: "Generic API error", ErrorCode: "GENERIC_ERROR"}
 
 	// request validators
-	jsonContentTypeValidator = &testserver.HeaderValidator{
-		Key:   "Content-Type",
-		Value: "application/json",
-	}
-	authTokenValidator = &testserver.HeaderValidator{
-		Key:   "Authorization",
-		Value: "Bearer " + accessToken,
-	}
-	emptyQueryValidator = &testserver.QueryValidator{Query: url.Values{}}
-	emptyBodyValidator  = &testserver.JSONBodyValidator{Body: nil}
+	jsonContentTypeValidator = &testserver.HeaderValidator{Key: "Content-Type", Value: "application/json"}
+	authTokenValidator       = &testserver.HeaderValidator{Key: "Authorization", Value: "Bearer " + accessToken}
+	emptyQueryValidator      = &testserver.QueryValidator{Query: url.Values{}}
+	emptyBodyValidator       = &testserver.JSONBodyValidator{Body: nil}
+	getMethodValidator       = &testserver.MethodValidator{Method: http.MethodGet}
+	postMethodValidator      = &testserver.MethodValidator{Method: http.MethodPost}
+	patchMethodValidator     = &testserver.MethodValidator{Method: http.MethodPatch}
+	deleteMethodValidator    = &testserver.MethodValidator{Method: http.MethodDelete}
 )
 
 func createClientAndServer(t *testing.T) (*Client, *testserver.Server) {
@@ -91,7 +89,7 @@ func TestCreateSObject(t *testing.T) {
 		path := fmt.Sprintf("/services/data/%s/sobjects/%s", apiVersion, test.objectType)
 		validators := []testserver.RequestValidator{authTokenValidator, jsonContentTypeValidator,
 			emptyQueryValidator, &testserver.JSONBodyValidator{Body: test.object},
-			&testserver.PathValidator{Path: path}}
+			&testserver.PathValidator{Path: path}, postMethodValidator}
 		requestFunc := func() (interface{}, error) {
 			return client.CreateSObject(test.objectType, test.object)
 		}
@@ -134,7 +132,8 @@ func TestGetSObject(t *testing.T) {
 		path := fmt.Sprintf("/services/data/%s/sobjects/%s/%s", apiVersion, test.objectType,
 			test.objectID)
 		validators := []testserver.RequestValidator{authTokenValidator, jsonContentTypeValidator,
-			emptyQueryValidator, emptyBodyValidator, &testserver.PathValidator{Path: path}}
+			emptyQueryValidator, emptyBodyValidator, &testserver.PathValidator{Path: path},
+			getMethodValidator}
 
 		requestFunc := func() (interface{}, error) {
 			return client.GetSObject(test.objectType, test.objectID)
@@ -182,7 +181,8 @@ func TestGetSObjectByExternalID(t *testing.T) {
 		path := fmt.Sprintf("/services/data/%s/sobjects/%s/%s/%s", apiVersion, test.objectType,
 			test.externalIDField, test.externalID)
 		validators := []testserver.RequestValidator{authTokenValidator, jsonContentTypeValidator,
-			emptyQueryValidator, emptyBodyValidator, &testserver.PathValidator{Path: path}}
+			emptyQueryValidator, emptyBodyValidator, &testserver.PathValidator{Path: path},
+			getMethodValidator}
 
 		requestFunc := func() (interface{}, error) {
 			return client.GetSObjectByExternalID(test.objectType,
@@ -232,7 +232,7 @@ func TestUpsertSObject(t *testing.T) {
 			test.objectID)
 		validators := []testserver.RequestValidator{authTokenValidator, jsonContentTypeValidator,
 			emptyQueryValidator, &testserver.JSONBodyValidator{Body: test.object},
-			&testserver.PathValidator{Path: path}}
+			&testserver.PathValidator{Path: path}, patchMethodValidator}
 
 		requestFunc := func() (interface{}, error) {
 			return client.UpsertSObject(test.objectType, test.objectID, test.object)
@@ -287,7 +287,7 @@ func TestUpsertSObjectByExternalID(t *testing.T) {
 			test.externalIDField, test.externalID)
 		validators := []testserver.RequestValidator{authTokenValidator, jsonContentTypeValidator,
 			emptyQueryValidator, &testserver.JSONBodyValidator{Body: test.object},
-			&testserver.PathValidator{Path: path}}
+			&testserver.PathValidator{Path: path}, patchMethodValidator}
 
 		requestFunc := func() (interface{}, error) {
 			return client.UpsertSObjectByExternalID(test.objectType, test.externalIDField,
