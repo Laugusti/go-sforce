@@ -308,6 +308,48 @@ func TestUpsertSObjectByExternalID(t *testing.T) {
 	}
 }
 
+func TestDeleteSObject(t *testing.T) {
+	client, server := createClientAndServer(t)
+	defer server.Stop()
+
+	tests := []struct {
+		objectType   string
+		objectID     string
+		statusCode   int
+		requestCount int
+		errSnippet   string
+	}{
+		{"", "", 0, 0, "sobject name is required"},
+		{"", "A", 0, 0, "sobject name is required"},
+		{"Object", "", 0, 0, "sobject id is required"},
+		{"Object", "A", 204, 1, ""},
+		{"Object", "A", 400, 1, "GENERIC_ERROR"},
+	}
+
+	for _, test := range tests {
+		assertMsg := fmt.Sprintf("input: %v", test)
+		path := fmt.Sprintf("/services/data/%s/sobjects/%s/%s", apiVersion, test.objectType,
+			test.objectID)
+		validators := []testserver.RequestValidator{authTokenValidator, jsonContentTypeValidator,
+			emptyQueryValidator, emptyBodyValidator, &testserver.PathValidator{Path: path},
+			deleteMethodValidator}
+
+		requestFunc := func() (interface{}, error) {
+			return nil, client.DeleteSObject(test.objectType, test.objectID)
+		}
+		successFunc := func(res interface{}) {
+			assert.Nil(t, res, assertMsg)
+		}
+		handler := &testserver.JSONResponseHandler{
+			StatusCode: test.statusCode,
+			Body:       nil,
+		}
+
+		assertRequest(t, assertMsg, server, test.errSnippet, requestFunc, successFunc,
+			test.requestCount, validators, handler)
+	}
+}
+
 func TestUnauthorizedClient(t *testing.T) {
 	client, server := createClientAndServer(t)
 	defer server.Stop()
