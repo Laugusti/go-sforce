@@ -73,6 +73,16 @@ func (v *QueryValidator) Validate(t *testing.T, r *http.Request, assertMsg strin
 	assert.Equal(t, v.Query, r.URL.Query(), assertMsg)
 }
 
+// MethodValidator validates the request method.
+type MethodValidator struct {
+	Method string
+}
+
+// Validate implements the RequestValidator interface.
+func (v *MethodValidator) Validate(t *testing.T, r *http.Request, assertMsg string) {
+	assert.EqualValues(t, v.Method, r.Method, assertMsg)
+}
+
 func jsonObjectToMap(v interface{}) (map[string]interface{}, error) {
 	var buf bytes.Buffer
 	err := json.NewEncoder(&buf).Encode(v)

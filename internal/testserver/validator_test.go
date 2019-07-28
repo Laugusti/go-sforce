@@ -105,6 +105,24 @@ func TestQueryValidator(t *testing.T) {
 	}
 }
 
+func TestMethodValidator(t *testing.T) {
+	tests := []struct {
+		method string
+	}{
+		{""},
+		{http.MethodGet},
+		{http.MethodPost},
+		{http.MethodDelete},
+	}
+
+	for _, test := range tests {
+		var req http.Request
+		req.Method = test.method
+		v := &MethodValidator{test.method}
+		v.Validate(t, &req, fmt.Sprintf("input: %v", test))
+	}
+}
+
 func TestJSONObjectToMap(t *testing.T) {
 	tests := []struct {
 		object interface{}
