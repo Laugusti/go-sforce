@@ -401,6 +401,59 @@ func TestQuery(t *testing.T) {
 	}
 }
 
+func TestQueryMore(t *testing.T) {
+	client, server := createClientAndServer(t)
+	defer server.Stop()
+
+	tests := []struct {
+		queryResult  *QueryResult
+		statusCode   int
+		requestCount int
+		errSnippet   string
+		done         bool
+		totalSize    int
+		nextURL      string
+		records      []SObject
+	}{
+		{nil, 0, 0, "missing next records url", false, 0, "", nil},
+		{&QueryResult{}, 0, 0, "missing next records url", false, 0, "", nil},
+		{&QueryResult{NextRecordsURL: "next/records/url"}, 200, 1, "", true, 1, "", []SObject{map[string]interface{}{"A": 1.0, "B": "two", "C": false}}},
+		{&QueryResult{NextRecordsURL: "nextrecordsurl"}, 400, 1, "GENERIC_ERROR", true, 1, "", []SObject{}},
+		{&QueryResult{NextRecordsURL: "nru"}, 200, 1, "", false, 3, server.URL(), []SObject{map[string]interface{}{"A": "a"}, map[string]interface{}{"A": "a"}}},
+	}
+
+	for _, test := range tests {
+		assertMsg := fmt.Sprintf("input: %v", test)
+		path := ""
+		if test.queryResult != nil {
+			path = test.queryResult.NextRecordsURL
+		}
+		validators := []testserver.RequestValidator{authTokenValidator, jsonContentTypeValidator,
+			emptyQueryValidator, emptyBodyValidator,
+			&testserver.PathValidator{Path: path}, getMethodValidator}
+
+		want := &QueryResult{
+			Done:           test.done,
+			NextRecordsURL: test.nextURL,
+			TotalSize:      test.totalSize,
+			Records:        test.records,
+		}
+		requestFunc := func() (interface{}, error) {
+			return client.QueryMore(test.queryResult)
+		}
+		successFunc := func(res interface{}) {
+			assert.Equal(t, want, res, assertMsg)
+		}
+		handler := &testserver.JSONResponseHandler{
+			StatusCode: test.statusCode,
+			Body:       want,
+		}
+
+		assertRequest(t, assertMsg, server, test.errSnippet, requestFunc, successFunc,
+			test.requestCount, validators, handler)
+	}
+}
+
 func TestUnauthorizedClient(t *testing.T) {
 	client, server := createClientAndServer(t)
 	defer server.Stop()
