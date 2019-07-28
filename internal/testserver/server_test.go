@@ -11,28 +11,40 @@ import (
 func TestServer(t *testing.T) {
 	// create new server
 	s := New()
-	assert.Nil(t, s.s, "TestServer => server should not be started")
-	//assert.NotNil(t, s.HandlerFunc, "TestServer => handler should not be nil")
+	assert.Nil(t, s.s, "server should not be started")
+	assert.Nil(t, s.HandlerFunc, "handler should be nil")
+	assert.Equal(t, 0, s.RequestCount, "no requests sent to server")
 
 	// start server
 	s.Start()
-	assert.NotNil(t, s.s, "TestServer => server should be started")
-	assert.NotNil(t, s.Client(), "TestServer => client should not be nil")
-	assert.NotEmpty(t, s.URL(), "TestServer => server url should not be empty")
+	assert.NotNil(t, s.s, "server should be started")
+	assert.NotNil(t, s.Client(), "client should not be nil")
+	assert.NotEmpty(t, s.URL(), "server url should not be empty")
 
 	// create request
 	jsonResp := make(map[string]interface{})
 	statusCode, err := doRequest(s, &jsonResp)
-	assert.Nilf(t, err, "TestServer => unexpected error: %v", err)
+	assert.Nilf(t, err, "unexpected error: %v", err)
 	assert.Equal(t, http.StatusOK, statusCode)
-	assert.Equal(t, "hello world", jsonResp["message"], "TestServer => wrong mesage")
+	assert.Equal(t, "hello world", jsonResp["message"], "wrong mesage")
+	assert.Equal(t, 1, s.RequestCount)
 
 	// new response
 	s.HandlerFunc = StaticJSONHandler(map[string]string{"message": "error"}, 400)
 	statusCode, err = doRequest(s, &jsonResp)
-	assert.Nilf(t, err, "TestServer => unexpected error: %v", err)
+	assert.Nilf(t, err, "unexpected error: %v", err)
 	assert.Equal(t, 400, statusCode)
-	assert.Equal(t, "error", jsonResp["message"], "TestServer => wrong message")
+	assert.Equal(t, "error", jsonResp["message"], "wrong message")
+	assert.Equal(t, 2, s.RequestCount)
+
+	// restart server and send new request
+	s.Stop()
+	s.Start()
+	statusCode, err = doRequest(s, &jsonResp)
+	assert.Nilf(t, err, "unexpected error: %v", err)
+	assert.Equal(t, http.StatusOK, statusCode)
+	assert.Equal(t, "hello world", jsonResp["message"], "wrong mesage")
+	assert.Equal(t, 1, s.RequestCount)
 
 	// stop server
 	s.Stop()

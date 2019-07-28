@@ -7,14 +7,14 @@ import (
 
 // Server is a wrapper for a test server.
 type Server struct {
-	s           *httptest.Server
-	HandlerFunc http.HandlerFunc
+	s            *httptest.Server
+	RequestCount int
+	HandlerFunc  http.HandlerFunc
 }
 
 // New returns a new unstarted Server
 func New() *Server {
 	s := &Server{}
-	s.HandlerFunc = StaticJSONHandler(map[string]string{"message": "hello world"}, http.StatusOK)
 	return s
 }
 
@@ -24,8 +24,11 @@ func (s *Server) Start() {
 	if s.s != nil {
 		return
 	}
+	// reset counter and handler
+	s.RequestCount = 0
 	s.HandlerFunc = StaticJSONHandler(map[string]string{"message": "hello world"}, http.StatusOK)
 	s.s = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.RequestCount++
 		s.HandlerFunc(w, r)
 	}))
 }
