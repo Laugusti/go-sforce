@@ -1,41 +1,51 @@
 package restclient
 
 import (
-	"io"
 	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/Laugusti/go-sforce/credentials"
+	"github.com/Laugusti/go-sforce/internal/testserver"
 	"github.com/Laugusti/go-sforce/session"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBuildRequest(t *testing.T) {
-	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = io.Copy(w, strings.NewReader(`{"instance_url":"url", "access_token": "token"}`))
-	}))
-	defer s.Close()
+	s := testserver.New(t)
+	defer s.Stop()
+	s.HandlerFunc = testserver.StaticJSONHandler(t, session.RequestToken{
+		AccessToken: accessToken,
+		InstanceURL: s.URL(),
+	}, 200)
+
 	client := &Client{
-		sess:       session.Must(session.New(s.URL, "version", credentials.New("user", "pass", "cid", "csecret"))),
+		sess:       session.Must(session.New(s.URL(), "version", credentials.New("user", "pass", "cid", "csecret"))),
 		httpClient: s.Client(),
 	}
-	req, err := client.buildRequest("apiPath", "raw=query", "GET", strings.NewReader("body"))
-	if err != nil {
-		t.Errorf("TestBuildRequest => %v", err)
+
+	tests := []struct {
+		apiPath  string
+		rawQuery string
+		body     string
+	}{
+		{"", "", ""},
+		{"/path", "", ""},
+		{"", "a=1,2b=3", "{}"},
+		{"/api/path", "raw=query", "body"},
 	}
 
-	if auth := req.Header.Get("Authorization"); auth != "Bearer token" {
-		t.Errorf("TestBuildRequest => wrong auth: want %q, got %q", "Bearer token", auth)
-	}
-	if b, _ := ioutil.ReadAll(req.Body); string(b) != "body" {
-		t.Errorf("TestBuildRequest => wrong body: want %q, got %q", "body", string(b))
-	}
-	if p := req.URL.Path; p != "url/apiPath" {
-		t.Errorf("TestBuildRequest => wrong path: want %q, got %q", "url/apiPath", p)
-	}
-	if q := req.URL.RawQuery; q != "raw=query" {
-		t.Errorf("TestBuildRequest => wrong query: want %q, got %q", "raw=query", q)
+	for _, test := range tests {
+		req, err := client.buildRequest(test.apiPath, test.rawQuery, http.MethodGet, strings.NewReader(test.body))
+
+		assert.Nil(t, err)
+		assert.Contains(t, req.Header.Get("Authorization"), accessToken)
+		assert.Equal(t, "application/json", req.Header.Get("Content-Type"))
+		b, err := ioutil.ReadAll(req.Body)
+		assert.Nil(t, err)
+		assert.Equal(t, []byte(test.body), b)
+		assert.Equal(t, test.apiPath, req.URL.Path)
+		assert.Equal(t, test.rawQuery, req.URL.RawQuery)
 	}
 }
