@@ -17,7 +17,7 @@ const (
 )
 
 var (
-	loginSuccessResponse = func(w http.ResponseWriter, r *http.Request) {
+	loginSuccessHandler = func(w http.ResponseWriter, r *http.Request) {
 		serverURL := fmt.Sprintf("http://%s", r.Host)
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(session.RequestToken{
@@ -25,8 +25,7 @@ var (
 			InstanceURL: serverURL,
 		})
 	}
-
-	unauthorizedResponse = testserver.StaticJSONHandler(APIError{
+	unauthorizedHandler = testserver.StaticJSONHandler(APIError{
 		Message:   "Session expired or invalid",
 		ErrorCode: "INVALID_SESSION_ID",
 	}, http.StatusUnauthorized)
@@ -38,11 +37,13 @@ func createClientAndServer(t *testing.T) (*Client, *testserver.Server) {
 	s.Start()
 
 	// create session and login
-	s.HandlerFunc = loginSuccessResponse
+	s.HandlerFunc = loginSuccessHandler
 	sess := session.Must(session.New(s.URL(), "version", credentials.New("user", "pass", "cid", "csecret")))
 	if err := sess.Login(); err != nil {
 		t.Fatal(err)
 	}
+	assert.Equal(t, 1, s.RequestCount)
+	s.RequestCount = 0 // reset counter
 
 	// create client
 	client := &Client{sess, s.Client()}
@@ -55,17 +56,18 @@ func TestCreateSObject(t *testing.T) {
 	defer server.Stop()
 
 	tests := []struct {
-		objectType string
-		object     SObject
-		statusCode int
-		errSnippet string
+		objectType   string
+		object       SObject
+		statusCode   int
+		requestCount int
+		errSnippet   string
 	}{
-		{"", nil, 400, "sobject name is required"},
-		{"Object", nil, 400, "sobject value is required"},
-		{"Object", map[string]interface{}{}, 400, "sobject value is required"},
-		{"", map[string]interface{}{"Field1": "one", "Field2": 2}, 400, "sobject name is required"},
-		{"Object", map[string]interface{}{"Field1": "one", "Field2": 2}, 201, ""},
-		{"Object", map[string]interface{}{"Field1": "one", "Field2": 2}, 400, "GENERIC_ERROR"},
+		{"", nil, 400, 0, "sobject name is required"},
+		{"Object", nil, 400, 0, "sobject value is required"},
+		{"Object", map[string]interface{}{}, 400, 0, "sobject value is required"},
+		{"", map[string]interface{}{"Field1": "one", "Field2": 2}, 400, 0, "sobject name is required"},
+		{"Object", map[string]interface{}{"Field1": "one", "Field2": 2}, 201, 1, ""},
+		{"Object", map[string]interface{}{"Field1": "one", "Field2": 2}, 400, 1, "GENERIC_ERROR"},
 	}
 
 	for _, test := range tests {
@@ -80,7 +82,9 @@ func TestCreateSObject(t *testing.T) {
 		}
 
 		// do request
+		server.RequestCount = 0 // reset counter
 		res, err := client.CreateSObject(test.objectType, test.object)
+		assert.Equal(t, test.requestCount, server.RequestCount)
 		if test.errSnippet != "" {
 			assert.NotNilf(t, err, "input %v: expected error", test)
 			assert.Containsf(t, err.Error(), test.errSnippet,
