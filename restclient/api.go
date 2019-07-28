@@ -47,7 +47,7 @@ func (c *Client) GetSObject(sObjectName, id string) (SObject, error) {
 	apiPath := path.Join(fmt.Sprintf(sObjectPath, c.sess.APIVersion), sObjectName, id)
 	// do post and unmarshal response to result object
 	var sObject SObject
-	if err := c.doGet(apiPath, "", sObject); err != nil {
+	if err := c.doGet(apiPath, "", &sObject); err != nil {
 		return nil, fmt.Errorf("failed to get SObject: %v", err)
 	}
 	return sObject, nil
@@ -69,7 +69,7 @@ func (c *Client) GetSObjectByExternalID(sObjectName, externalIDField, externalID
 	apiPath := path.Join(fmt.Sprintf(sObjectPath, c.sess.APIVersion), sObjectName, externalIDField, externalID)
 	// do post and unmarshal response to result object
 	var sObject SObject
-	if err := c.doGet(apiPath, "", sObject); err != nil {
+	if err := c.doGet(apiPath, "", &sObject); err != nil {
 		return nil, fmt.Errorf("failed to get SObject: %v", err)
 	}
 	return sObject, nil

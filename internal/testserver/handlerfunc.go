@@ -26,23 +26,24 @@ func StaticJSONHandler(v interface{}, statusCode int) http.HandlerFunc {
 func ValidateJSONBodyHandler(t *testing.T, wantedRequestBody, respBody interface{},
 	responseCode int, assertMessage string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// get expected body as map
-		want, err := jsonObjectToMap(wantedRequestBody)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		// get request body as map
-		got := make(map[string]interface{})
-		err = json.NewDecoder(r.Body).Decode(&got)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		if wantedRequestBody != nil {
+			// get expected body as map
+			want, err := jsonObjectToMap(wantedRequestBody)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			// get request body as map
+			got := make(map[string]interface{})
+			err = json.NewDecoder(r.Body).Decode(&got)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 
-		// assert body matches expected
-		assert.Equal(t, want, got, assertMessage)
-
+			// assert body matches expected
+			assert.Equal(t, want, got, assertMessage)
+		}
 		// write response
 		b, err := json.Marshal(respBody)
 		if err != nil {
