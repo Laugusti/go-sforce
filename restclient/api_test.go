@@ -25,7 +25,7 @@ var (
 			InstanceURL: serverURL,
 		})
 	}
-	unauthorizedHandler = testserver.StaticJSONHandler(APIError{
+	unauthorizedHandler = testserver.StaticJSONHandler(&testing.T{}, APIError{
 		Message:   "Session expired or invalid",
 		ErrorCode: "INVALID_SESSION_ID",
 	}, http.StatusUnauthorized)
@@ -33,8 +33,7 @@ var (
 
 func createClientAndServer(t *testing.T) (*Client, *testserver.Server) {
 	// start server
-	s := testserver.New()
-	s.Start()
+	s := testserver.New(t)
 
 	// create session and login
 	s.HandlerFunc = loginSuccessHandler
@@ -62,10 +61,10 @@ func TestCreateSObject(t *testing.T) {
 		requestCount int
 		errSnippet   string
 	}{
-		{"", nil, 400, 0, "sobject name is required"},
-		{"Object", nil, 400, 0, "sobject value is required"},
-		{"Object", map[string]interface{}{}, 400, 0, "sobject value is required"},
-		{"", map[string]interface{}{"Field1": "one", "Field2": 2}, 400, 0, "sobject name is required"},
+		{"", nil, 0, 0, "sobject name is required"},
+		{"Object", nil, 0, 0, "sobject value is required"},
+		{"Object", map[string]interface{}{}, 0, 0, "sobject value is required"},
+		{"", map[string]interface{}{"Field1": "one", "Field2": 2}, 0, 0, "sobject name is required"},
 		{"Object", map[string]interface{}{"Field1": "one", "Field2": 2}, 201, 1, ""},
 		{"Object", map[string]interface{}{"Field1": "one", "Field2": 2}, 400, 1, "GENERIC_ERROR"},
 	}
@@ -222,7 +221,7 @@ func TestUnauthorizedClient(t *testing.T) {
 		case 2:
 			loginSuccessHandler(w, r)
 		default:
-			testserver.StaticJSONHandler(UpsertResult{"id", true, nil}, http.StatusCreated)(w, r)
+			testserver.StaticJSONHandler(t, UpsertResult{"id", true, nil}, http.StatusCreated)(w, r)
 		}
 	}
 	_, err = client.CreateSObject("Object", map[string]interface{}{"A": "B"})

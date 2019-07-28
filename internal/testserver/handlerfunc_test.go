@@ -11,8 +11,7 @@ import (
 
 func TestStaticJSONHandler(t *testing.T) {
 	// start server
-	s := New()
-	s.Start()
+	s := New(t)
 	defer s.Stop()
 
 	// set server response to static json
@@ -20,7 +19,7 @@ func TestStaticJSONHandler(t *testing.T) {
 		"field1": "one",
 		"field2": 2.0,
 	}
-	s.HandlerFunc = StaticJSONHandler(want, http.StatusCreated)
+	s.HandlerFunc = StaticJSONHandler(t, want, http.StatusCreated)
 
 	// get response using http client
 	resp, err := s.Client().Get(s.URL())
@@ -35,10 +34,55 @@ func TestStaticJSONHandler(t *testing.T) {
 	assert.Equal(t, want, got)
 }
 
+func TestValidateAndSetResponseHandler(t *testing.T) {
+	// start server
+	s := New(t)
+	defer s.Stop()
+
+	// set server handler
+	reqBody := map[string]interface{}{
+		"field1": "one",
+		"field2": 2.0,
+	}
+	respBody := map[string]interface{}{
+		"field2": "one",
+		"field1": 2.0,
+	}
+
+	headerValidator1 := &HeaderValidator{"Key", "Value"}
+	headerValidator2 := &HeaderValidator{"Content-Type", "application/json"}
+	bodyValidator := &JSONBodyValidator{reqBody}
+
+	s.HandlerFunc = ValidateAndSetResponseHandler(t, respBody, http.StatusAccepted,
+		headerValidator1, headerValidator2, bodyValidator)
+
+	// get response using http client
+	var buf bytes.Buffer
+	err := json.NewEncoder(&buf).Encode(reqBody)
+	assert.Nil(t, err)
+	req, err := http.NewRequest(http.MethodPost, s.URL(), &buf)
+	assert.Nil(t, err)
+	req.Header.Set("Key", "Value")
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := s.Client().Do(req)
+	assert.Nil(t, err)
+	defer func(shouldClose bool) {
+		if shouldClose {
+			_ = resp.Body.Close()
+		}
+	}(err != nil)
+
+	// assert response body matches expected
+	assert.Equal(t, resp.StatusCode, http.StatusAccepted)
+	got := make(map[string]interface{})
+	err = json.NewDecoder(resp.Body).Decode(&got)
+	assert.Nil(t, err)
+	assert.Equal(t, respBody, got)
+}
+
 func TestValidateJSONBodyHandler(t *testing.T) {
 	// start server
-	s := New()
-	s.Start()
+	s := New(t)
 	defer s.Stop()
 
 	// set server handler

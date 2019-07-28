@@ -3,18 +3,21 @@ package testserver
 import (
 	"net/http"
 	"net/http/httptest"
+	"testing"
 )
 
 // Server is a wrapper for a test server.
 type Server struct {
 	s            *httptest.Server
+	t            *testing.T
 	RequestCount int
 	HandlerFunc  http.HandlerFunc
 }
 
-// New returns a new unstarted Server
-func New() *Server {
-	s := &Server{}
+// New returns a new started Server
+func New(t *testing.T) *Server {
+	s := &Server{t: t}
+	s.Start()
 	return s
 }
 
@@ -26,7 +29,7 @@ func (s *Server) Start() {
 	}
 	// reset counter and handler
 	s.RequestCount = 0
-	s.HandlerFunc = StaticJSONHandler(map[string]string{"message": "hello world"}, http.StatusOK)
+	s.HandlerFunc = StaticJSONHandler(s.t, map[string]string{"message": "hello world"}, http.StatusOK)
 	s.s = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s.RequestCount++
 		s.HandlerFunc(w, r)

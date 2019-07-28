@@ -10,13 +10,7 @@ import (
 
 func TestServer(t *testing.T) {
 	// create new server
-	s := New()
-	assert.Nil(t, s.s, "server should not be started")
-	assert.Nil(t, s.HandlerFunc, "handler should be nil")
-	assert.Equal(t, 0, s.RequestCount, "no requests sent to server")
-
-	// start server
-	s.Start()
+	s := New(t)
 	assert.NotNil(t, s.s, "server should be started")
 	assert.NotNil(t, s.Client(), "client should not be nil")
 	assert.NotEmpty(t, s.URL(), "server url should not be empty")
@@ -30,7 +24,7 @@ func TestServer(t *testing.T) {
 	assert.Equal(t, 1, s.RequestCount)
 
 	// new response
-	s.HandlerFunc = StaticJSONHandler(map[string]string{"message": "error"}, 400)
+	s.HandlerFunc = StaticJSONHandler(t, map[string]string{"message": "error"}, 400)
 	statusCode, err = doRequest(s, &jsonResp)
 	assert.Nilf(t, err, "unexpected error: %v", err)
 	assert.Equal(t, 400, statusCode)
