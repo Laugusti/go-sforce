@@ -1,34 +1,22 @@
 package testserver
 
 import (
-	"encoding/json"
 	"net/http"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 // ValidateAndSetResponseHandler runs each validator again the request, then sets the response body and status
-func ValidateAndSetResponseHandler(t *testing.T, assertMessage string, body interface{}, statusCode int,
+func ValidateAndSetResponseHandler(t *testing.T, assertMessage string, handler ResponseHandler,
 	validators ...RequestValidator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		for _, v := range validators {
 			v.Validate(t, r, assertMessage)
 		}
-		// write response
-		if body == nil {
-			w.WriteHeader(statusCode)
-			return
-		}
-		b, err := json.Marshal(body)
-		assert.Nil(t, err, assertMessage)
-		w.WriteHeader(statusCode)
-		_, err = w.Write(b)
-		assert.Nil(t, err, assertMessage)
+		handler.Handle(t, w, assertMessage)
 	}
 }
 
 // StaticJSONHandler creates reponse by marshalling the value as a json.
 func StaticJSONHandler(t *testing.T, body interface{}, statusCode int) http.HandlerFunc {
-	return ValidateAndSetResponseHandler(t, "", body, statusCode)
+	return ValidateAndSetResponseHandler(t, "", &JSONBodyResponseHandler{statusCode, body})
 }

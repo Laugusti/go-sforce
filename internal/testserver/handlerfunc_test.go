@@ -90,7 +90,8 @@ func TestValidateAndSetResponseHandler(t *testing.T) {
 		}
 
 		s.HandlerFunc = ValidateAndSetResponseHandler(t, assertMsg,
-			test.respBody, test.statusCode, validators...)
+			&JSONBodyResponseHandler{test.statusCode, test.respBody},
+			validators...)
 		resp, err := s.Client().Do(req)
 		if !assert.NoError(t, err, assertMsg) {
 			t.Fatal("missing response")
