@@ -1,6 +1,7 @@
 package session
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -35,6 +36,7 @@ func TestNew(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		assertMsg := fmt.Sprintf("input: %v", test)
 		_, err := New(
 			test.input.loginURL,
 			test.input.apiVersion,
@@ -45,8 +47,12 @@ func TestNew(t *testing.T) {
 				test.input.clientSecret,
 			),
 		)
-		if err != nil && err.Error() != test.errMsg || err == nil && test.errMsg != "" {
-			t.Errorf("TestNew => input: %v; expected: %v; got: %v", test.input, test.errMsg, err)
+		if test.errMsg == "" {
+			assert.Nil(t, err, assertMsg)
+		} else {
+			if assert.NotNilf(t, err, assertMsg) {
+				assert.Contains(t, err.Error(), test.errMsg, assertMsg)
+			}
 		}
 	}
 }
@@ -79,19 +85,11 @@ func TestLogin(t *testing.T) {
 		t.Error("TestLogin => should not have token")
 	}
 	err := sess.Login()
-	if err != nil {
-		t.Errorf("TestLogin => login failed: %v", err)
-	}
+	assert.Nil(t, err)
 
-	if !sess.HasToken() {
-		t.Error("TestLogin => should have token")
-	}
-	if sess.AccessToken() != "testToken" {
-		t.Errorf("TestLogin => wrong access token: expected %s, got %s", "testToken", sess.AccessToken())
-	}
-	if sess.InstanceURL() != "testUrl" {
-		t.Errorf("TestLogin => wrong instance url: expected: %s, got %s", "testUrl", sess.InstanceURL())
-	}
+	assert.True(t, sess.HasToken(), "should have token")
+	assert.EqualValues(t, "testToken", sess.AccessToken(), "wrong access token")
+	assert.Equal(t, "testUrl", sess.InstanceURL(), "wrong instance url")
 }
 
 func checkLoginFormValues(t *testing.T, form url.Values, key, want string) {
