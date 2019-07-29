@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/Laugusti/go-sforce/credentials"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNew(t *testing.T) {
@@ -34,7 +35,16 @@ func TestNew(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		_, err := New(test.input.loginURL, test.input.apiVersion, credentials.New(test.input.username, test.input.password, test.input.clientID, test.input.clientSecret))
+		_, err := New(
+			test.input.loginURL,
+			test.input.apiVersion,
+			credentials.New(
+				test.input.username,
+				test.input.password,
+				test.input.clientID,
+				test.input.clientSecret,
+			),
+		)
 		if err != nil && err.Error() != test.errMsg || err == nil && test.errMsg != "" {
 			t.Errorf("TestNew => input: %v; expected: %v; got: %v", test.input, test.errMsg, err)
 		}
@@ -43,18 +53,25 @@ func TestNew(t *testing.T) {
 
 func TestLogin(t *testing.T) {
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r.ParseForm()
+		err := r.ParseForm()
+		assert.Nil(t, err)
 		checkLoginFormValues(t, r.Form, "grant_type", "password")
 		checkLoginFormValues(t, r.Form, "client_id", "clientid")
 		checkLoginFormValues(t, r.Form, "client_secret", "clientsecret")
 		checkLoginFormValues(t, r.Form, "username", "user")
 		checkLoginFormValues(t, r.Form, "password", "pass")
-		io.Copy(w, strings.NewReader(`{"instance_url": "testUrl", "access_token": "testToken"}`))
+		_, err = io.Copy(w, strings.NewReader(`{"instance_url": "testUrl", "access_token": "testToken"}`))
+		assert.Nil(t, err)
 	}))
 	defer s.Close()
 	sess := &Session{
-		LoginURL:   s.URL,
-		creds:      &credentials.OAuth{"user", "pass", "clientid", "clientsecret"},
+		LoginURL: s.URL,
+		creds: &credentials.OAuth{
+			Username:     "user",
+			Password:     "pass",
+			ClientID:     "clientid",
+			ClientSecret: "clientsecret",
+		},
 		httpClient: s.Client(),
 	}
 

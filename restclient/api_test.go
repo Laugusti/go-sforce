@@ -49,7 +49,11 @@ func createClientAndServer(t *testing.T) (*Client, *testserver.Server) {
 			AccessToken: accessToken,
 			InstanceURL: s.URL(),
 		})
-	sess := session.Must(session.New(s.URL(), apiVersion, credentials.New("user", "pass", "cid", "csecret")))
+	sess := session.Must(session.New(
+		s.URL(),
+		apiVersion,
+		credentials.New("user", "pass", "cid", "csecret"),
+	))
 	if err := sess.Login(); err != nil {
 		t.Fatal(err)
 	}
