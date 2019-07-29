@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-// ValidateAndSetResponseHandler runs each validator again the request, then sets the response body and status
-func ValidateAndSetResponseHandler(t *testing.T, assertMessage string, handler ResponseHandler,
+// ValidateRequestHandlerFunc runs each validator again the request, then sets the response body and status
+func ValidateRequestHandlerFunc(t *testing.T, assertMessage string, handler ResponseHandler,
 	validators ...RequestValidator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		for _, v := range validators {
@@ -16,7 +16,7 @@ func ValidateAndSetResponseHandler(t *testing.T, assertMessage string, handler R
 	}
 }
 
-// StaticJSONHandler creates reponse by marshalling the value as a json.
-func StaticJSONHandler(t *testing.T, body interface{}, statusCode int) http.HandlerFunc {
-	return ValidateAndSetResponseHandler(t, "", &JSONResponseHandler{statusCode, body})
+// StaticJSONHandlerFunc creates reponse by marshalling the value as a json.
+func StaticJSONHandlerFunc(t *testing.T, body interface{}, statusCode int) http.HandlerFunc {
+	return ValidateRequestHandlerFunc(t, "", &JSONResponseHandler{statusCode, body})
 }

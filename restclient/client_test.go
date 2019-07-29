@@ -15,7 +15,7 @@ import (
 func TestBuildRequest(t *testing.T) {
 	s := testserver.New(t)
 	defer s.Stop()
-	s.HandlerFunc = testserver.StaticJSONHandler(t, session.RequestToken{
+	s.HandlerFunc = testserver.StaticJSONHandlerFunc(t, session.RequestToken{
 		AccessToken: accessToken,
 		InstanceURL: s.URL(),
 	}, 200)

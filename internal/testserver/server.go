@@ -29,7 +29,7 @@ func (s *Server) Start() {
 	}
 	// reset counter and handler
 	s.RequestCount = 0
-	s.HandlerFunc = StaticJSONHandler(s.t, map[string]string{"message": "hello world"}, http.StatusOK)
+	s.HandlerFunc = StaticJSONHandlerFunc(s.t, map[string]string{"message": "hello world"}, http.StatusOK)
 	s.s = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s.RequestCount++
 		s.HandlerFunc(w, r)

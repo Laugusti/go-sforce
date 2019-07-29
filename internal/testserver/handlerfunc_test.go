@@ -27,7 +27,7 @@ func TestStaticJSONHandler(t *testing.T) {
 	for i, test := range tests {
 		assertMsg := fmt.Sprintf("input: %v", test)
 		// set server response to static json
-		s.HandlerFunc = StaticJSONHandler(t, test.body, test.statusCode)
+		s.HandlerFunc = StaticJSONHandlerFunc(t, test.body, test.statusCode)
 
 		// get response using http client
 		resp, err := s.Client().Get(s.URL())
@@ -89,7 +89,7 @@ func TestValidateAndSetResponseHandler(t *testing.T) {
 			validators = append(validators, &HeaderValidator{k, v})
 		}
 
-		s.HandlerFunc = ValidateAndSetResponseHandler(t, assertMsg,
+		s.HandlerFunc = ValidateRequestHandlerFunc(t, assertMsg,
 			&JSONResponseHandler{test.statusCode, test.respBody},
 			validators...)
 		resp, err := s.Client().Do(req)

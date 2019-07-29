@@ -44,7 +44,7 @@ func createClientAndServer(t *testing.T) (*Client, *testserver.Server) {
 	s := testserver.New(t)
 
 	// create session and login
-	s.HandlerFunc = testserver.ValidateAndSetResponseHandler(t, "",
+	s.HandlerFunc = testserver.ValidateRequestHandlerFunc(t, "",
 		&testserver.JSONResponseHandler{
 			StatusCode: http.StatusOK,
 			Body: session.RequestToken{
@@ -502,7 +502,7 @@ func TestFullQuery(t *testing.T) {
 		},
 	}
 
-	server.HandlerFunc = testserver.ValidateAndSetResponseHandler(t, "",
+	server.HandlerFunc = testserver.ValidateRequestHandlerFunc(t, "",
 		&testserver.ConsecutiveResponseHandler{Handlers: handlers},
 		validators...)
 
@@ -515,7 +515,7 @@ func TestUnauthorizedClient(t *testing.T) {
 	client, server := createClientAndServer(t)
 	defer server.Stop()
 	// server handler return 401
-	server.HandlerFunc = testserver.ValidateAndSetResponseHandler(t, "", unauthorizedHandler)
+	server.HandlerFunc = testserver.ValidateRequestHandlerFunc(t, "", unauthorizedHandler)
 
 	_, err := client.CreateSObject("Object", map[string]interface{}{"A": "B"})
 	assert.NotNil(t, err, "expected client error")
@@ -524,7 +524,7 @@ func TestUnauthorizedClient(t *testing.T) {
 
 	server.RequestCount = 0 // reset counter
 	// 1st request fails, 2nd returns access token, others return upsert result
-	server.HandlerFunc = testserver.ValidateAndSetResponseHandler(t, "",
+	server.HandlerFunc = testserver.ValidateRequestHandlerFunc(t, "",
 		&testserver.ConsecutiveResponseHandler{
 			Handlers: []testserver.ResponseHandler{
 				unauthorizedHandler,
@@ -556,7 +556,7 @@ func assertRequest(t *testing.T, assertMsg string, server *testserver.Server, wa
 	if shouldErr {
 		respHandler.Body = genericErr
 	}
-	server.HandlerFunc = testserver.ValidateAndSetResponseHandler(t, assertMsg, respHandler, validators...)
+	server.HandlerFunc = testserver.ValidateRequestHandlerFunc(t, assertMsg, respHandler, validators...)
 
 	// invoke request
 	server.RequestCount = 0 // reset counter
