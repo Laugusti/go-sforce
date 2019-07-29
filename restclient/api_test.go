@@ -1,7 +1,6 @@
 package restclient
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -19,18 +18,12 @@ const (
 )
 
 var (
-	loginSuccessHandler = func(w http.ResponseWriter, r *http.Request) {
-		serverURL := fmt.Sprintf("http://%s", r.Host)
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(session.RequestToken{
-			AccessToken: accessToken,
-			InstanceURL: serverURL,
-		})
+	unauthorizedHandler = &testserver.JSONResponseHandler{
+		StatusCode: http.StatusUnauthorized,
+		Body: APIError{
+			Message:   "Session expired or invalid",
+			ErrorCode: "INVALID_SESSION_ID"},
 	}
-	unauthorizedHandler = testserver.StaticJSONHandler(&testing.T{}, APIError{
-		Message:   "Session expired or invalid",
-		ErrorCode: "INVALID_SESSION_ID",
-	}, http.StatusUnauthorized)
 
 	// api error
 	genericErr = APIError{Message: "Generic API error", ErrorCode: "GENERIC_ERROR"}
@@ -51,7 +44,14 @@ func createClientAndServer(t *testing.T) (*Client, *testserver.Server) {
 	s := testserver.New(t)
 
 	// create session and login
-	s.HandlerFunc = loginSuccessHandler
+	s.HandlerFunc = testserver.ValidateAndSetResponseHandler(t, "",
+		&testserver.JSONResponseHandler{
+			StatusCode: http.StatusOK,
+			Body: session.RequestToken{
+				AccessToken: accessToken,
+				InstanceURL: s.URL(),
+			},
+		})
 	sess := session.Must(session.New(s.URL(), apiVersion, credentials.New("user", "pass", "cid", "csecret")))
 	if err := sess.Login(); err != nil {
 		t.Fatal(err)
@@ -472,7 +472,7 @@ func TestFullQuery(t *testing.T) {
 	validators := []testserver.RequestValidator{authTokenValidator, jsonContentTypeValidator,
 		emptyBodyValidator, getMethodValidator}
 
-	handlers := []*testserver.JSONResponseHandler{
+	handlers := []testserver.ResponseHandler{
 		&testserver.JSONResponseHandler{
 			StatusCode: http.StatusOK,
 			Body: &QueryResult{
@@ -503,7 +503,7 @@ func TestFullQuery(t *testing.T) {
 	}
 
 	server.HandlerFunc = testserver.ValidateAndSetResponseHandler(t, "",
-		&testserver.JSONConsecutiveResponseHandler{Handlers: handlers},
+		&testserver.ConsecutiveResponseHandler{Handlers: handlers},
 		validators...)
 
 	res, err := client.FullQuery("query")
@@ -515,27 +515,32 @@ func TestUnauthorizedClient(t *testing.T) {
 	client, server := createClientAndServer(t)
 	defer server.Stop()
 	// server handler return 401
+	server.HandlerFunc = testserver.ValidateAndSetResponseHandler(t, "", unauthorizedHandler)
 
-	server.HandlerFunc = unauthorizedHandler
 	_, err := client.CreateSObject("Object", map[string]interface{}{"A": "B"})
 	assert.NotNil(t, err, "expected client error")
 	assert.Contains(t, err.Error(), "INVALID_SESSION_ID", "expected invalid session response")
 	assert.Equal(t, 2, server.RequestCount, "expected 2 request (create and login)")
 
 	server.RequestCount = 0 // reset counter
-	// 1st request fails, 2nd returns login, other return upsert result
-	server.HandlerFunc = func(w http.ResponseWriter, r *http.Request) {
-		switch server.RequestCount {
-		case 0:
-			t.Error("request count can't be 0")
-		case 1:
-			unauthorizedHandler(w, r)
-		case 2:
-			loginSuccessHandler(w, r)
-		default:
-			testserver.StaticJSONHandler(t, UpsertResult{"id", true, nil}, http.StatusCreated)(w, r)
-		}
-	}
+	// 1st request fails, 2nd returns access token, others return upsert result
+	server.HandlerFunc = testserver.ValidateAndSetResponseHandler(t, "",
+		&testserver.ConsecutiveResponseHandler{
+			Handlers: []testserver.ResponseHandler{
+				unauthorizedHandler,
+				&testserver.JSONResponseHandler{
+					StatusCode: http.StatusOK,
+					Body: session.RequestToken{
+						AccessToken: accessToken,
+						InstanceURL: server.URL(),
+					},
+				},
+				&testserver.JSONResponseHandler{
+					StatusCode: http.StatusCreated,
+					Body:       UpsertResult{"id", true, nil},
+				},
+			},
+		})
 	_, err = client.CreateSObject("Object", map[string]interface{}{"A": "B"})
 	assert.Nil(t, err, "client request should've succeeded")
 	// 3 requests (create POST and login POST and retry create POST)
