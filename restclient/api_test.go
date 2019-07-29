@@ -44,14 +44,13 @@ func createClientAndServer(t *testing.T) (*Client, *testserver.Server) {
 	s := testserver.New(t)
 
 	// create session and login
-	s.HandlerFunc = testserver.ValidateRequestHandlerFunc(t, "",
-		&testserver.JSONResponseHandler{
-			StatusCode: http.StatusOK,
-			Body: session.RequestToken{
-				AccessToken: accessToken,
-				InstanceURL: s.URL(),
-			},
-		})
+	s.HandlerFunc = testserver.StaticJSONHandlerFunc(t,
+		session.RequestToken{
+			AccessToken: accessToken,
+			InstanceURL: s.URL(),
+		},
+		http.StatusOK,
+	)
 	sess := session.Must(session.New(s.URL(), apiVersion, credentials.New("user", "pass", "cid", "csecret")))
 	if err := sess.Login(); err != nil {
 		t.Fatal(err)

@@ -21,7 +21,11 @@ func TestBuildRequest(t *testing.T) {
 	}, 200)
 
 	client := &Client{
-		sess:       session.Must(session.New(s.URL(), "version", credentials.New("user", "pass", "cid", "csecret"))),
+		sess: session.Must(session.New(
+			s.URL(),
+			"version",
+			credentials.New("user", "pass", "cid", "csecret"),
+		)),
 		httpClient: s.Client(),
 	}
 
@@ -37,7 +41,12 @@ func TestBuildRequest(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		req, err := client.buildRequest(test.apiPath, test.rawQuery, http.MethodGet, strings.NewReader(test.body))
+		req, err := client.buildRequest(
+			test.apiPath,
+			test.rawQuery,
+			http.MethodGet,
+			strings.NewReader(test.body),
+		)
 
 		assert.Nil(t, err)
 		assert.Contains(t, req.Header.Get("Authorization"), accessToken)
