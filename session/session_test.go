@@ -88,7 +88,7 @@ func TestLogin(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.True(t, sess.HasToken(), "should have token")
-	assert.EqualValues(t, "testToken", sess.AccessToken(), "wrong access token")
+	assert.Equal(t, "testToken", sess.AccessToken(), "wrong access token")
 	assert.Equal(t, "testUrl", sess.InstanceURL(), "wrong instance url")
 }
 
