@@ -24,7 +24,7 @@ func TestServer(t *testing.T) {
 	assert.Equal(t, 1, s.RequestCount)
 
 	// new response
-	s.HandlerFunc = StaticJSONHandlerFunc(t, map[string]string{"message": "error"}, 400)
+	s.HandlerFunc = StaticJSONHandlerFunc(t, 400, map[string]string{"message": "error"})
 	statusCode, err = doRequest(s, &jsonResp)
 	assert.Nilf(t, err, "unexpected error: %v", err)
 	assert.Equal(t, 400, statusCode)

@@ -17,6 +17,6 @@ func ValidateRequestHandlerFunc(t *testing.T, assertMessage string, handler Resp
 }
 
 // StaticJSONHandlerFunc creates reponse by marshalling the value as a json.
-func StaticJSONHandlerFunc(t *testing.T, body interface{}, statusCode int) http.HandlerFunc {
+func StaticJSONHandlerFunc(t *testing.T, statusCode int, body interface{}) http.HandlerFunc {
 	return ValidateRequestHandlerFunc(t, "", &JSONResponseHandler{statusCode, body})
 }

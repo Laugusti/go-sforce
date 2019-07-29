@@ -27,7 +27,7 @@ func TestStaticJSONHandler(t *testing.T) {
 	for i, test := range tests {
 		assertMsg := fmt.Sprintf("input: %v", test)
 		// set server response to static json
-		s.HandlerFunc = StaticJSONHandlerFunc(t, test.body, test.statusCode)
+		s.HandlerFunc = StaticJSONHandlerFunc(t, test.statusCode, test.body)
 
 		// get response using http client
 		resp, err := s.Client().Get(s.URL())

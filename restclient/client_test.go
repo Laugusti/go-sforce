@@ -15,10 +15,11 @@ import (
 func TestBuildRequest(t *testing.T) {
 	s := testserver.New(t)
 	defer s.Stop()
-	s.HandlerFunc = testserver.StaticJSONHandlerFunc(t, session.RequestToken{
-		AccessToken: accessToken,
-		InstanceURL: s.URL(),
-	}, 200)
+	s.HandlerFunc = testserver.StaticJSONHandlerFunc(t, 200,
+		session.RequestToken{
+			AccessToken: accessToken,
+			InstanceURL: s.URL(),
+		})
 
 	client := &Client{
 		sess: session.Must(session.New(
