@@ -31,7 +31,7 @@ func TestHeaderValidator(t *testing.T) {
 		for k, v := range test.headers {
 			req.Header[textproto.CanonicalMIMEHeaderKey(k)] = []string{v}
 		}
-		v.Validate(t, &req, fmt.Sprintf("input: %v", test))
+		assert.Nil(t, v.Validate(&req), fmt.Sprintf("input: %v", test))
 	}
 }
 
@@ -55,7 +55,7 @@ func TestJSONBodyValidator(t *testing.T) {
 			assert.Nil(t, err, assertMsg)
 			req.Body = ioutil.NopCloser(&buf)
 		}
-		v.Validate(t, &req, assertMsg)
+		assert.Nil(t, v.Validate(&req), assertMsg)
 	}
 }
 
@@ -80,7 +80,7 @@ func TestPathValidator(t *testing.T) {
 		var req http.Request
 		req.URL = u
 		v := &PathValidator{test.path}
-		v.Validate(t, &req, fmt.Sprintf("input: %v", test))
+		assert.Nil(t, v.Validate(&req), fmt.Sprintf("input: %v", test))
 	}
 }
 
@@ -105,7 +105,7 @@ func TestQueryValidator(t *testing.T) {
 		q, err := url.ParseQuery(test.query)
 		assert.Nil(t, err, assertMsg)
 		v := &QueryValidator{q}
-		v.Validate(t, &req, fmt.Sprintf("input: %v", test))
+		assert.Nil(t, v.Validate(&req), fmt.Sprintf("input: %v", test))
 	}
 }
 
@@ -123,7 +123,7 @@ func TestMethodValidator(t *testing.T) {
 		var req http.Request
 		req.Method = test.method
 		v := &MethodValidator{test.method}
-		v.Validate(t, &req, fmt.Sprintf("input: %v", test))
+		assert.Nil(t, v.Validate(&req), fmt.Sprintf("input: %v", test))
 	}
 }
 
@@ -149,7 +149,7 @@ func TestFormValidator(t *testing.T) {
 		assert.Nil(t, err, assertMsg)
 		req.Form = form
 		v := &FormValidator{form}
-		v.Validate(t, &req, assertMsg)
+		assert.Nil(t, v.Validate(&req), assertMsg)
 	}
 }
 

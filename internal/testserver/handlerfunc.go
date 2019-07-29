@@ -3,6 +3,8 @@ package testserver
 import (
 	"net/http"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // ValidateRequestHandlerFunc runs each validator again the request, then sets the response body and status
@@ -10,7 +12,7 @@ func ValidateRequestHandlerFunc(t *testing.T, assertMessage string, handler Resp
 	validators ...RequestValidator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		for _, v := range validators {
-			v.Validate(t, r, assertMessage)
+			assert.Nil(t, v.Validate(r), assertMessage)
 		}
 		handler.Handle(t, w, assertMessage)
 	}
