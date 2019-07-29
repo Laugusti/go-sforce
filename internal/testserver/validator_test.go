@@ -46,15 +46,16 @@ func TestJSONBodyValidator(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		assertMsg := fmt.Sprintf("input: %v", test)
 		v := &JSONBodyValidator{test.body}
 		var req http.Request
 		if test.body != nil {
 			var buf bytes.Buffer
 			err := json.NewEncoder(&buf).Encode(test.body)
-			assert.Nil(t, err)
+			assert.Nil(t, err, assertMsg)
 			req.Body = ioutil.NopCloser(&buf)
 		}
-		v.Validate(t, &req, fmt.Sprintf("input: %v", test))
+		v.Validate(t, &req, assertMsg)
 	}
 }
 
@@ -73,8 +74,9 @@ func TestPathValidator(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		assertMsg := fmt.Sprintf("input: %v", test)
 		u, err := url.Parse(test.url)
-		assert.Nil(t, err)
+		assert.Nil(t, err, assertMsg)
 		var req http.Request
 		req.URL = u
 		v := &PathValidator{test.path}
@@ -95,12 +97,13 @@ func TestQueryValidator(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		assertMsg := fmt.Sprintf("input: %v", test)
 		u, err := url.Parse(test.url)
-		assert.Nil(t, err)
+		assert.Nil(t, err, assertMsg)
 		var req http.Request
 		req.URL = u
 		q, err := url.ParseQuery(test.query)
-		assert.Nil(t, err)
+		assert.Nil(t, err, assertMsg)
 		v := &QueryValidator{q}
 		v.Validate(t, &req, fmt.Sprintf("input: %v", test))
 	}
@@ -124,6 +127,32 @@ func TestMethodValidator(t *testing.T) {
 	}
 }
 
+func TestFormValidator(t *testing.T) {
+	tests := []struct {
+		rawForm string
+	}{
+		{""},
+		{"&"},
+		{"="},
+		{"a"},
+		{"a=b"},
+		{"a=b,c"},
+		{"a=b&c"},
+		{"a=b&c=d"},
+		{"a=b&c=d,e"},
+	}
+
+	for _, test := range tests {
+		assertMsg := fmt.Sprintf("input: %v", test)
+		var req http.Request
+		form, err := url.ParseQuery(test.rawForm)
+		assert.Nil(t, err, assertMsg)
+		req.Form = form
+		v := &FormValidator{form}
+		v.Validate(t, &req, assertMsg)
+	}
+}
+
 func TestJSONObjectToMap(t *testing.T) {
 	tests := []struct {
 		object interface{}
@@ -135,8 +164,9 @@ func TestJSONObjectToMap(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		assertMsg := fmt.Sprintf("input: %v", test)
 		got, err := jsonObjectToMap(test.object)
-		assert.Nil(t, err)
-		assert.Equal(t, test.want, got)
+		assert.Nil(t, err, assertMsg)
+		assert.Equal(t, test.want, got, assertMsg)
 	}
 }

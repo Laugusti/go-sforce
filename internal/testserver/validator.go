@@ -79,7 +79,19 @@ type MethodValidator struct {
 
 // Validate implements the RequestValidator interface.
 func (v *MethodValidator) Validate(t *testing.T, r *http.Request, assertMsg string) {
-	assert.EqualValues(t, v.Method, r.Method, assertMsg)
+	assert.Equal(t, v.Method, r.Method, assertMsg)
+}
+
+// FormValidator validates the request form.
+type FormValidator struct {
+	Form url.Values
+}
+
+// Validate implements the RequestValidator interface.
+func (v *FormValidator) Validate(t *testing.T, r *http.Request, assertMsg string) {
+	err := r.ParseForm()
+	assert.Nil(t, err, assertMsg)
+	assert.Equal(t, v.Form, r.Form, assertMsg)
 }
 
 func jsonObjectToMap(v interface{}) (map[string]interface{}, error) {
