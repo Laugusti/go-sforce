@@ -58,5 +58,9 @@ func (s *Server) Client() *http.Client {
 
 // URL returns the base url of server
 func (s *Server) URL() string {
+	// server not started
+	if s.s == nil {
+		return ""
+	}
 	return s.s.URL
 }
