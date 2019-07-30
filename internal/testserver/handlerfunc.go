@@ -14,7 +14,7 @@ func ValidateRequestHandlerFunc(t *testing.T, assertMessage string, handler Resp
 		for _, v := range validators {
 			assert.Nil(t, v.Validate(r), assertMessage)
 		}
-		handler.Handle(t, w, assertMessage)
+		assert.Nil(t, handler.Handle(w), assertMessage)
 	}
 }
 

@@ -86,7 +86,7 @@ func assertResponseMatch(t *testing.T, h ResponseHandler, statusCode int, body i
 	assertMsg string) {
 	// handle with test response writer
 	w := newResponseWriter()
-	h.Handle(t, w, assertMsg)
+	assert.Nil(t, h.Handle(w), assertMsg)
 
 	// status code match
 	assert.Equal(t, statusCode, w.statusCode)
