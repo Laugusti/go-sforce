@@ -22,7 +22,7 @@ clientID, clientSecret := "test1n3289s32", `testjfa9a"afa8"'132%$#@@`
 sess := session.Must(session.New(loginURL, "42.0",
 	credentials.New(username, password, clientID, clientSecret)))
 ```
-1. Optionally request an access token before passing to client
+2. Optionally request an access token before passing to client
 ```
 err := sess.Login()
 if err != nil {
@@ -34,16 +34,16 @@ if err != nil {
 ```
 restClient := restClient.New(sess)
 ```
-1. Support Methods
-- CreateSObject             - Used to creates a SObject in Salesforce using the object type.
-- GetSObject                - Used to retrieve a SObject using the object type and Salesforce id.
-- GetSObjectByExternalID    - Used to retrieve a SObject using the object type, external id field, and external id.
-- UpsertSObject             - Used to upsert (update/insert) a SObject using the object type and Salesforce id.
+2. Support Methods
+- CreateSObject - Used to creates a SObject in Salesforce using the object type.
+- GetSObject - Used to retrieve a SObject using the object type and Salesforce id.
+- GetSObjectByExternalID - Used to retrieve a SObject using the object type, external id field, and external id.
+- UpsertSObject - Used to upsert (update/insert) a SObject using the object type and Salesforce id.
 - UpsertSObjectByExternalID - Used to upsert a SObject using the object type, external id field, and external id.
-- DeleteSObject             - Used to delete a SObject using the object type and Salesforce id.
-- Query                     - Used to execute a SOQL query in Salesforce.
-- QueryMore                 - Used to get the remaining result of a SOQL query.
-- FullQuery                 - Not supported by the Salesforce API. This exeucted all QueryMore for a query.
+- DeleteSObject - Used to delete a SObject using the object type and Salesforce id.
+- Query - Used to execute a SOQL query in Salesforce.
+- QueryMore - Used to get the remaining result of a SOQL query.
+- FullQuery - Not supported by the Salesforce API. This exeuctes any and all necessary QueryMore for a query.
 
 ### Bulk API client
 ```
