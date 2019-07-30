@@ -23,7 +23,6 @@ type Session struct {
 	APIVersion   string
 	creds        *credentials.OAuth
 	httpClient   *http.Client
-	instanceURL  string
 	requestToken *RequestToken
 }
 
@@ -75,6 +74,9 @@ func Must(sess *Session, err error) *Session {
 
 // Login requests an access token from the Salesforce API
 func (s *Session) Login() error {
+	// reset token
+	s.requestToken = nil
+
 	u, err := url.Parse(s.LoginURL)
 	if err != nil {
 		return err
@@ -87,11 +89,14 @@ func (s *Session) Login() error {
 	form.Set("username", s.creds.Username)
 	form.Set("password", s.creds.Password)
 
+	// do post for request token
 	resp, err := s.httpClient.PostForm(u.String(), form)
 	if err != nil {
 		return fmt.Errorf("failed to get access token: %v", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
+
+	// need 200
 	if resp.StatusCode != http.StatusOK {
 		b, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
@@ -100,6 +105,8 @@ func (s *Session) Login() error {
 		}
 		return fmt.Errorf("unexpected status (want %d, got %d): %s", 200, resp.StatusCode, b)
 	}
+
+	// unmarshal response to token
 	var result RequestToken
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
