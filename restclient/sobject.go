@@ -51,9 +51,42 @@ type SObjectBuilder struct {
 	Fields []*SObjectField
 }
 
-// NewSObjectBuilder returns an builder for the Salesforce Object
+// NewSObjectBuilder returns a builder for a Salesforce Object.
 func NewSObjectBuilder() *SObjectBuilder {
 	return &SObjectBuilder{}
+}
+
+// SObjectBuilderFromSObject returns a builder for the SObject.
+func SObjectBuilderFromSObject(s SObject) *SObjectBuilder {
+	fields := []*SObjectField{}
+
+	// new struct for sobjects remember the field path
+	type nestedSObject struct {
+		fieldPath string
+		sobj      SObject
+	}
+	//
+	items := []*nestedSObject{&nestedSObject{"", s}}
+	for i := 0; i < len(items); i++ {
+		item := items[i]
+		for k, v := range item.sobj {
+			fieldPath := strings.TrimPrefix(fmt.Sprintf("%s.%s", item.fieldPath, k), ".")
+			root := item.fieldPath == ""
+
+			// if not map, add to fields slice
+			if _, ok := v.(map[string]interface{}); !ok {
+				fields = append(fields, &SObjectField{
+					Name:   fieldPath,
+					Value:  v,
+					Dotted: !root,
+				})
+				continue
+			}
+			// object is map, add to items slice to be processed
+			items = append(items, &nestedSObject{fieldPath, v.(map[string]interface{})})
+		}
+	}
+	return &SObjectBuilder{fields}
 }
 
 // NewField adds the field using the AddField method and returns the SObjectBuilder

@@ -2,7 +2,10 @@ package restclient
 
 import (
 	"fmt"
+	"math/rand"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -146,4 +149,26 @@ func TestSObjectBuilder(t *testing.T) {
 	}
 
 	assert.Equal(t, want, got)
+}
+
+func TestFromSObject(t *testing.T) {
+	rng := rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
+	for i := 0; i < 100; i++ {
+		sobj := randomSObject(rng)
+		assert.Equal(t, sobj, SObjectBuilderFromSObject(sobj).Build())
+	}
+}
+
+func randomSObject(rng *rand.Rand) SObject {
+	sb := NewSObjectBuilder()
+	for i := 0; i < 3125; i++ {
+		// create random combinations of [a b c d e]
+		s := [5]string{}
+		for i := 0; i < 5; i++ {
+			s[i] = fmt.Sprintf("%c", 97+rng.Intn(5))
+		}
+		path := strings.Join(s[:], ".")
+		sb.NewDottedField(path, path)
+	}
+	return sb.Build()
 }
