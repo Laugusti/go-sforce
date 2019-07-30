@@ -1,8 +1,6 @@
 package testserver
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -71,14 +69,11 @@ func TestValidateAndSetResponseHandler(t *testing.T) {
 		headers, err := url.ParseQuery(test.rawHeaders)
 		assert.Nil(t, err, assertMsg)
 
-		var buf bytes.Buffer
-		if test.reqBody != nil {
-			err = json.NewEncoder(&buf).Encode(test.reqBody)
-			assert.Nil(t, err, assertMsg)
-		}
+		body, err := jsonObjectToReadCloser(test.reqBody)
+		assert.Nil(t, err, assertMsg)
 		req, err := http.NewRequest(http.MethodGet,
 			fmt.Sprintf("%s/%s?%s", s.URL(), test.path, test.rawQuery),
-			&buf)
+			body)
 		assert.Nil(t, err, assertMsg)
 
 		validators := []RequestValidator{&JSONBodyValidator{test.reqBody},
@@ -111,8 +106,7 @@ func assertExepctedBody(t *testing.T, want interface{}, resp *http.Response, ass
 	} else {
 		want, err := jsonObjectToMap(want)
 		assert.Nil(t, err, assertMsg)
-		got := make(map[string]interface{})
-		err = json.NewDecoder(resp.Body).Decode(&got)
+		got, err := jsonReaderToMap(resp.Body)
 		assert.Nil(t, err, assertMsg)
 		assert.Equal(t, want, got, assertMsg)
 	}

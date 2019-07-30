@@ -1,7 +1,7 @@
 package testserver
 
 import (
-	"encoding/json"
+	"io"
 	"net/http"
 	"testing"
 
@@ -26,11 +26,11 @@ func (h *JSONResponseHandler) Handle(t *testing.T, w http.ResponseWriter, assert
 		w.WriteHeader(h.StatusCode)
 		return
 	}
-	b, err := json.Marshal(h.Body)
+	body, err := jsonObjectToReadCloser(h.Body)
 	assert.Nil(t, err, assertMsg)
 	w.WriteHeader(h.StatusCode)
-	_, err = w.Write(b)
 	w.Header().Set("Content-Type", "application/json")
+	_, err = io.Copy(w, body)
 	assert.Nil(t, err, assertMsg)
 }
 

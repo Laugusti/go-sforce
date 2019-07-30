@@ -1,8 +1,6 @@
 package testserver
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -63,8 +61,8 @@ func (v *JSONBodyValidator) Validate(r *http.Request) error {
 		return fmt.Errorf("JSONBodyValidator failed: could not convert object to map: %v", err)
 	}
 	// get request body as map
-	got := make(map[string]interface{})
-	if err := json.NewDecoder(r.Body).Decode(&got); err != nil {
+	got, err := jsonReaderToMap(r.Body)
+	if err != nil {
 		return fmt.Errorf("JSONBodyValidator failed: could not unmarshal request body: %v", err)
 	}
 	// assert body matches
@@ -116,15 +114,4 @@ func (v *FormValidator) Validate(r *http.Request) error {
 		return fmt.Errorf("FormValidator failed: could not parse form: %v", err)
 	}
 	return deepCompare("FormValidator", v.Form, r.Form)
-}
-
-func jsonObjectToMap(v interface{}) (map[string]interface{}, error) {
-	var buf bytes.Buffer
-	err := json.NewEncoder(&buf).Encode(v)
-	if err != nil {
-		return nil, err
-	}
-	m := make(map[string]interface{})
-	err = json.NewDecoder(&buf).Decode(&m)
-	return m, err
 }

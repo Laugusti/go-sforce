@@ -1,7 +1,6 @@
 package testserver
 
 import (
-	"encoding/json"
 	"net/http"
 	"testing"
 
@@ -16,8 +15,7 @@ func TestServer(t *testing.T) {
 	assert.NotEmpty(t, s.URL(), "server url should not be empty")
 
 	// create request
-	jsonResp := make(map[string]interface{})
-	statusCode, err := doRequest(s, &jsonResp)
+	statusCode, jsonResp, err := doRequest(s)
 	assert.Nilf(t, err, "unexpected error: %v", err)
 	assert.Equal(t, http.StatusOK, statusCode)
 	assert.Equal(t, "hello world", jsonResp["message"], "wrong mesage")
@@ -25,7 +23,7 @@ func TestServer(t *testing.T) {
 
 	// new response
 	s.HandlerFunc = StaticJSONHandlerFunc(t, 400, map[string]string{"message": "error"})
-	statusCode, err = doRequest(s, &jsonResp)
+	statusCode, jsonResp, err = doRequest(s)
 	assert.Nilf(t, err, "unexpected error: %v", err)
 	assert.Equal(t, 400, statusCode)
 	assert.Equal(t, "error", jsonResp["message"], "wrong message")
@@ -34,7 +32,7 @@ func TestServer(t *testing.T) {
 	// restart server and send new request
 	s.Stop()
 	s.Start()
-	statusCode, err = doRequest(s, &jsonResp)
+	statusCode, jsonResp, err = doRequest(s)
 	assert.Nilf(t, err, "unexpected error: %v", err)
 	assert.Equal(t, http.StatusOK, statusCode)
 	assert.Equal(t, "hello world", jsonResp["message"], "wrong mesage")
@@ -45,11 +43,12 @@ func TestServer(t *testing.T) {
 	assert.Nil(t, s.s)
 }
 
-func doRequest(s *Server, result interface{}) (int, error) {
+func doRequest(s *Server) (int, map[string]interface{}, error) {
 	resp, err := s.Client().Get(s.URL())
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	defer func() { _ = resp.Body.Close() }()
-	return resp.StatusCode, json.NewDecoder(resp.Body).Decode(result)
+	m, err := jsonReaderToMap(resp.Body)
+	return resp.StatusCode, m, err
 }

@@ -1,10 +1,7 @@
 package testserver
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/textproto"
 	"net/url"
@@ -50,10 +47,9 @@ func TestJSONBodyValidator(t *testing.T) {
 		v := &JSONBodyValidator{test.body}
 		var req http.Request
 		if test.body != nil {
-			var buf bytes.Buffer
-			err := json.NewEncoder(&buf).Encode(test.body)
+			body, err := jsonObjectToReadCloser(test.body)
 			assert.Nil(t, err, assertMsg)
-			req.Body = ioutil.NopCloser(&buf)
+			req.Body = body
 		}
 		assert.Nil(t, v.Validate(&req), assertMsg)
 	}
@@ -150,23 +146,5 @@ func TestFormValidator(t *testing.T) {
 		req.Form = form
 		v := &FormValidator{form}
 		assert.Nil(t, v.Validate(&req), assertMsg)
-	}
-}
-
-func TestJSONObjectToMap(t *testing.T) {
-	tests := []struct {
-		object interface{}
-		want   map[string]interface{}
-	}{
-		{struct{ A string }{"value"}, map[string]interface{}{"A": "value"}},
-		{struct{ B int }{3}, map[string]interface{}{"B": 3.0}},
-		{struct{ C bool }{true}, map[string]interface{}{"C": true}},
-	}
-
-	for _, test := range tests {
-		assertMsg := fmt.Sprintf("input: %v", test)
-		got, err := jsonObjectToMap(test.object)
-		assert.Nil(t, err, assertMsg)
-		assert.Equal(t, test.want, got, assertMsg)
 	}
 }
