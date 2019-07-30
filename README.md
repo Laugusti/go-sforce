@@ -34,7 +34,7 @@ if err != nil {
 ```
 restClient := restClient.New(sess)
 ```
-2. Support Methods
+2. Supported Methods
 - CreateSObject - Used to creates a SObject in Salesforce using the object type.
 - GetSObject - Used to retrieve a SObject using the object type and Salesforce id.
 - GetSObjectByExternalID - Used to retrieve a SObject using the object type, external id field, and external id.
