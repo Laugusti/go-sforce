@@ -10,7 +10,7 @@ import (
 	"github.com/Laugusti/go-sforce/credentials"
 )
 
-func ExampleLogin() {
+func ExampleSession_Login() {
 	// test login server that responds with access token.
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_ = json.NewEncoder(w).Encode(RequestToken{
