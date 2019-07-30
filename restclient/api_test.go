@@ -515,6 +515,8 @@ func TestFullQuery(t *testing.T) {
 func TestUnauthorizedClient(t *testing.T) {
 	client, server := createClientAndServer(t)
 	defer server.Stop()
+
+	loginHandlerFunc := server.HandlerFunc
 	// server handler return 401
 	server.HandlerFunc = testserver.ValidateRequestHandlerFunc(t, "", unauthorizedHandler)
 
@@ -522,6 +524,10 @@ func TestUnauthorizedClient(t *testing.T) {
 	assert.NotNil(t, err, "expected client error")
 	assert.Contains(t, err.Error(), "INVALID_SESSION_ID", "expected invalid session response")
 	assert.Equal(t, 2, server.RequestCount, "expected 2 request (create and login)")
+
+	// reauthenticate session
+	server.HandlerFunc = loginHandlerFunc
+	assert.Nil(t, client.sess.Login(), "login failed")
 
 	server.RequestCount = 0 // reset counter
 	// 1st request fails, 2nd returns access token, others return upsert result
