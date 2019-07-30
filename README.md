@@ -19,7 +19,7 @@ Go Modules support coming soon.
 ```
 username, password := "user@example.com", "P@s$w0rD"
 clientID, clientSecret := "test1n3289s32", `testjfa9a"afa8"'132%$#@@`
-sess := session.Must(session.New(loginURL, "42.0",
+sess := session.Must(session.New("http://login.example.com", "42.0",
 	credentials.New(username, password, clientID, clientSecret)))
 ```
 2. Optionally request an access token before passing to client
