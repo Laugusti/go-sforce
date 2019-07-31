@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"sync"
 
 	"github.com/Laugusti/go-sforce/credentials"
 )
@@ -23,6 +24,7 @@ type Session struct {
 	APIVersion   string
 	creds        *credentials.OAuth
 	httpClient   *http.Client
+	mu           sync.Mutex // guards request token
 	requestToken *RequestToken
 }
 
@@ -74,6 +76,8 @@ func Must(sess *Session, err error) *Session {
 
 // Login requests an access token from the Salesforce API
 func (s *Session) Login() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	// reset token
 	s.requestToken = nil
 
@@ -118,11 +122,15 @@ func (s *Session) Login() error {
 
 // HasToken returns true if the session has a request token, otherwise false.
 func (s *Session) HasToken() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	return s.requestToken != nil
 }
 
 // AccessToken returns the access token from the Login response.
 func (s *Session) AccessToken() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if s.requestToken == nil {
 		return ""
 	}
@@ -131,6 +139,8 @@ func (s *Session) AccessToken() string {
 
 // InstanceURL returns the instance url from the Login response.
 func (s *Session) InstanceURL() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if s.requestToken == nil {
 		return ""
 	}

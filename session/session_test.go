@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/Laugusti/go-sforce/credentials"
 	"github.com/Laugusti/go-sforce/internal/testserver"
@@ -130,6 +131,77 @@ func TestLogin(t *testing.T) {
 			assert.Equal(t, test.accessToken, sess.AccessToken(), assertMsg)
 		}
 	}
+}
+
+func TestConcurrentSession(t *testing.T) {
+	server := testserver.New(t)
+	defer server.Stop()
+
+	// delay next login request
+	delayDuration := 3 * time.Second
+	delayNextLogin(server, delayDuration)
+
+	// create new session
+	sess := Must(New(server.URL(), "1", credentials.New("u", "p", "ci", "cs")))
+	sess.httpClient = server.Client()
+
+	// channel with duration
+	durationChan := make(chan time.Duration)
+
+	// session functions
+	loginFunc := func() { _ = sess.Login() } // first invocation is delayed
+	hasTokenFunc := func() { _ = sess.HasToken() }
+	instanceURLFunc := func() { _ = sess.InstanceURL() }
+	accessTokenFunc := func() { _ = sess.AccessToken() }
+
+	// invoke functions concurrently and report duration
+	go reportFuncDuration(durationChan, loginFunc) // this should lock session method calls
+	go reportFuncDuration(durationChan, hasTokenFunc)
+	go reportFuncDuration(durationChan, instanceURLFunc)
+	go reportFuncDuration(durationChan, accessTokenFunc)
+	go reportFuncDuration(durationChan, loginFunc)
+
+	// assert durations
+	assert.Greater(t, int64(<-durationChan), int64(delayDuration))
+	assert.Greater(t, int64(<-durationChan), int64(delayDuration))
+	assert.Greater(t, int64(<-durationChan), int64(delayDuration))
+	assert.Greater(t, int64(<-durationChan), int64(delayDuration))
+	assert.Greater(t, int64(<-durationChan), int64(delayDuration))
+
+	// request are no longer delayed
+	go reportFuncDuration(durationChan, loginFunc)
+	go reportFuncDuration(durationChan, accessTokenFunc)
+	assert.Less(t, int64(<-durationChan), int64(delayDuration))
+	assert.Less(t, int64(<-durationChan), int64(delayDuration))
+
+	// close channel
+	close(durationChan)
+}
+
+func delayNextLogin(server *testserver.Server, delayDuration time.Duration) {
+	// set handler func
+	handledCount := 0
+	server.HandlerFunc = func(w http.ResponseWriter, r *http.Request) {
+		h := &testserver.JSONResponseHandler{
+			StatusCode: 200,
+			Body: RequestToken{
+				AccessToken: "token",
+				InstanceURL: server.URL(),
+			},
+		}
+		// delay first response
+		if handledCount == 0 {
+			time.Sleep(delayDuration)
+		}
+		handledCount++
+		h.Handle(w)
+	}
+}
+
+func reportFuncDuration(durationChan chan<- time.Duration, f func()) {
+	start := time.Now()
+	f()
+	durationChan <- time.Since(start)
 }
 
 func setHandlerFunc(t *testing.T, assertMsg string, s *testserver.Server, creds credentials.OAuth,
