@@ -12,7 +12,7 @@ Go Modules support coming soon.
 ## Overview of Packages
 * credentials - Provides OAuth credentials need to make API requests.
 * session - Used to request an access token from the Salesfore API using the OAuth credentials.
-* restclient - Client for the Salesforce Rest API.
+* service - Clients for the Salesforce API.
 ## Usage
 ### Create a session
 1. Create unauthenticated session
@@ -32,7 +32,7 @@ if err != nil {
 ### Rest API client
 1.  Create rest client from a session
 ```
-restClient := restClient.New(sess)
+restClient := rest.New(sess)
 ```
 2. Supported Methods
 - CreateSObject - Used to creates a SObject in Salesforce using the object type.
