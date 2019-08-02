@@ -32,7 +32,7 @@ func ExampleClient_CreateSObject() {
 		NewField("Name", "test").
 		NewField("Field1", "Value").
 		NewDottedField("Parent.ExternalId", "parentId").
-		Build()
+		MustBuild()
 
 	res, err := client.CreateSObject("Object", sobj)
 	if err != nil {
@@ -50,7 +50,7 @@ func ExampleClient_GetSObject() {
 		NewField("Id", "salesforceId").
 		NewField("Name", "test").
 		NewField("Field1", "Value").
-		Build(),
+		MustBuild(),
 	)
 	defer tearDown()
 
@@ -80,9 +80,9 @@ func ExampleClient_FullQuery() {
 		Done:           true,
 		NextRecordsURL: "",
 		Records: []SObject{
-			NewSObjectBuilder().NewField("Id", "id1").Build(),
-			NewSObjectBuilder().NewField("Id", "id2").Build(),
-			NewSObjectBuilder().NewField("Id", "id3").Build(),
+			NewSObjectBuilder().NewField("Id", "id1").MustBuild(),
+			NewSObjectBuilder().NewField("Id", "id2").MustBuild(),
+			NewSObjectBuilder().NewField("Id", "id3").MustBuild(),
 		},
 	},
 	)

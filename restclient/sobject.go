@@ -1,46 +1,49 @@
 package restclient
 
 import (
+	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 )
 
 var (
-	errInvalidField = &InvalidFieldErr{}
+	errNilMap          = errors.New("cannot add field to nil map")
+	invalidFieldNameRE = regexp.MustCompile(`^([^a-zA-Z].*|.*__.*|.*[\W]+.*|.*[^a-zA-Z0-9]|)$`)
 )
 
-// InvalidFieldErr represents an invalid field error.
-type InvalidFieldErr struct {
+// InvalidFieldError represents an invalid field error.
+type InvalidFieldError struct {
 	FieldName string
 }
 
-func (e *InvalidFieldErr) Error() string {
-	return "field name is required"
+func (e *InvalidFieldError) Error() string {
+	return fmt.Sprintf("field %q is not valid", e.FieldName)
 }
 
-// FieldNotFoundErr represents an error for field not in the object.
-type FieldNotFoundErr struct {
+// UnknownFieldError represents an error for field not in the object.
+type UnknownFieldError struct {
 	FieldName string
 }
 
-func (e *FieldNotFoundErr) Error() string {
+func (e *UnknownFieldError) Error() string {
 	return fmt.Sprintf("field %q not in salesforce object", e.FieldName)
 }
 
-// InvalidFieldTypeErr represents an invalid field type when traversing the object.
-type InvalidFieldTypeErr struct {
+// NonMapFieldError represents an invalid field type when traversing the object.
+type NonMapFieldError struct {
 	FullFieldName   string
 	FailedFieldName string
 	FailedField     interface{}
 }
 
-func (e *InvalidFieldTypeErr) Error() string {
+func (e *NonMapFieldError) Error() string {
 	return fmt.Sprintf("failed to get field %q at %q: want map got %T", e.FullFieldName, e.FailedFieldName, e.FailedField)
 }
 
-// SObjectField is represents a field on a Salesforce Object. This is used by the
+// SObjectBuilderField is represents a field on a Salesforce Object. This is used by the
 // Salesforce Object Builder to add fields to the Salesforce Object.
-type SObjectField struct {
+type SObjectBuilderField struct {
 	Name   string
 	Value  interface{}
 	Dotted bool
@@ -48,7 +51,7 @@ type SObjectField struct {
 
 // SObjectBuilder is used to build a Salesforce Object using fluent chainging.
 type SObjectBuilder struct {
-	Fields []*SObjectField
+	Fields []*SObjectBuilderField
 }
 
 // NewSObjectBuilder returns a builder for a Salesforce Object.
@@ -58,14 +61,15 @@ func NewSObjectBuilder() *SObjectBuilder {
 
 // SObjectBuilderFromSObject returns a builder for the SObject.
 func SObjectBuilderFromSObject(s SObject) *SObjectBuilder {
-	fields := []*SObjectField{}
+	fields := []*SObjectBuilderField{}
 
 	// new struct for sobjects remember the field path
 	type nestedSObject struct {
 		fieldPath string
 		sobj      SObject
 	}
-	//
+
+	// start with root sobject
 	items := []*nestedSObject{&nestedSObject{"", s}}
 	for i := 0; i < len(items); i++ {
 		item := items[i]
@@ -75,7 +79,7 @@ func SObjectBuilderFromSObject(s SObject) *SObjectBuilder {
 
 			// if not map, add to fields slice
 			if _, ok := v.(map[string]interface{}); !ok {
-				fields = append(fields, &SObjectField{
+				fields = append(fields, &SObjectBuilderField{
 					Name:   fieldPath,
 					Value:  v,
 					Dotted: !root,
@@ -92,35 +96,58 @@ func SObjectBuilderFromSObject(s SObject) *SObjectBuilder {
 // NewField adds the field using the AddField method and returns the SObjectBuilder
 // for fluent chaining.
 func (sb *SObjectBuilder) NewField(field string, value interface{}) *SObjectBuilder {
-	sb.Fields = append(sb.Fields, &SObjectField{field, value, false})
+	sb.Fields = append(sb.Fields, &SObjectBuilderField{field, value, false})
 	return sb
 }
 
 // NewDottedField adds the field using the AddDottedField method and returns the SObjectBuilder
 // for fluent chaining.
 func (sb *SObjectBuilder) NewDottedField(field string, value interface{}) *SObjectBuilder {
-	sb.Fields = append(sb.Fields, &SObjectField{field, value, true})
+	sb.Fields = append(sb.Fields, &SObjectBuilderField{field, value, true})
 	return sb
 }
 
 // Build builds the Salesforce Object.
-func (sb *SObjectBuilder) Build() SObject {
+func (sb *SObjectBuilder) Build() (SObject, error) {
 	s := SObject{}
 	for _, f := range sb.Fields {
 		if f.Dotted {
-			if _, err := getLastSObjectInPath(s, f.Name, true, true); err != nil {
+			// add field to last sobject
+			sobj, err := getLastSObjectInPath(s, f.Name, true, true)
+			// invalid field should be the only error here
+			if _, ok := err.(*InvalidFieldError); ok {
+				return nil, &InvalidFieldError{f.Name}
+			} else if err != nil {
 				panic(err)
 			}
-			if err := s.AddDottedField(f.Name, f.Value); err != nil {
+			field := getLastFieldInPath(f.Name)
+			err = sobj.AddField(field, f.Value)
+			// invalid field should be the only error here
+			if _, ok := err.(*InvalidFieldError); ok {
+				return nil, &InvalidFieldError{f.Name}
+			} else if err != nil {
 				panic(err)
 			}
 		} else {
-			if err := s.AddField(f.Name, f.Value); err != nil {
+			// add field to root sobject, invalid field should be only error here
+			err := s.AddField(f.Name, f.Value)
+			if _, ok := err.(*InvalidFieldError); ok {
+				return nil, err
+			} else if err != nil {
 				panic(err)
 			}
 		}
 	}
-	return s
+	return s, nil
+}
+
+// MustBuild builds the Salesforce Object and panic if an error is received.
+func (sb *SObjectBuilder) MustBuild() SObject {
+	sobj, err := sb.Build()
+	if err != nil {
+		panic(err)
+	}
+	return sobj
 }
 
 // SObject stores a Salesforce Object used by the Salesforce API.
@@ -133,14 +160,17 @@ type SObject map[string]interface{}
 // _ = soject.AddField("a.b.c", 100)
 // The result of this is the following map: map[a.b.c:100]
 func (s SObject) AddField(field string, v interface{}) error {
-	if field == "" {
-		return errInvalidField
+	if isInvalidFieldName(field) {
+		return &InvalidFieldError{field}
+	}
+	if s == nil {
+		return errNilMap
 	}
 	s[field] = v
 	return nil
 }
 
-func (s SObject) mandatoryAddField(field string, v interface{}) {
+func (s SObject) mustAddField(field string, v interface{}) {
 	if err := s.AddField(field, v); err != nil {
 		panic(err)
 	}
@@ -168,24 +198,23 @@ func (s SObject) AddDottedField(dottedField string, v interface{}) error {
 	}
 
 	// add last field in fields list to working sobject
-	sobj.mandatoryAddField(getLastFieldInPath(dottedField), v)
-	return nil
+	return sobj.AddField(getLastFieldInPath(dottedField), v)
 }
 
 // GetField returns the field value on the Salesforce Object.
 // This returns an error if the field is invalid or the field is not in the object.
 // Example:
-// sobj := NewSObjectBuilder().AddDottedField("a.b.c", 100).AddField("a.b.c", 200).Build()
+// sobj := NewSObjectBuilder().AddDottedField("a.b.c", 100).AddField("a.b.c", 200).MustBuild()
 // v, _ = s.GetField("a.b.c")
 // The value of v will be 200
 // Refer to AddField and AddDottedField.
 func (s SObject) GetField(field string) (interface{}, error) {
-	if field == "" {
-		return nil, errInvalidField
+	if isInvalidFieldName(field) {
+		return nil, &InvalidFieldError{field}
 	}
 	v, ok := s[field]
 	if !ok {
-		return nil, &FieldNotFoundErr{field}
+		return nil, &UnknownFieldError{field}
 	}
 	return v, nil
 }
@@ -227,42 +256,57 @@ func (s SObject) GetMandatoryDottedField(dottedField string) interface{} {
 	return v
 }
 
+// split the dotted field by '.' and return the last string.
 func getLastFieldInPath(dottedField string) string {
 	// split field param using "."
 	fields := strings.Split(dottedField, ".")
 	return fields[len(fields)-1]
 }
 
+// returns the last sobject in field path for the dotted field, creating/replacing
+// fields if selected and necessary.
 func getLastSObjectInPath(s SObject, dottedField string, createIfNotExists, replaceIfWrongType bool) (SObject, error) {
 	// split field param using "."
 	fields := strings.Split(dottedField, ".")
-	// validate all fields in path
-	for _, f := range fields {
-		if f == "" {
-			return nil, errInvalidField
-		}
-	}
+
 	// drill down map object to get value
 	var sobj = s
 	for i := 0; i < len(fields)-1; i++ {
 		field := fields[i]
 		v, err := sobj.GetField(field)
-		if err != nil {
+		switch err := err.(type) {
+		case nil:
+			// found field, value must be map
+			switch v := v.(type) {
+			case map[string]interface{}:
+				if v == nil && createIfNotExists {
+					// field is nil, create it
+					sobj.mustAddField(field, map[string]interface{}{})
+				}
+			default:
+				// field is wrong type, replace it
+				if !replaceIfWrongType {
+					return nil, &NonMapFieldError{dottedField, field, v}
+				}
+				sobj.mustAddField(field, map[string]interface{}{})
+			}
+		case *UnknownFieldError:
 			// field not found, add it
-			if createIfNotExists {
-				sobj.mandatoryAddField(field, map[string]interface{}{})
-			} else {
+			if !createIfNotExists {
 				return nil, err
 			}
-		} else {
-			// found field, value must be map
-			if _, ok := v.(map[string]interface{}); !ok && !replaceIfWrongType {
-				return nil, &InvalidFieldTypeErr{dottedField, field, v}
-			} else if !ok && replaceIfWrongType {
-				sobj.mandatoryAddField(field, map[string]interface{}{})
-			}
+			sobj.mustAddField(field, map[string]interface{}{})
+		default:
+			return nil, err
 		}
 		sobj = sobj.GetMandatoryField(field).(map[string]interface{})
 	}
 	return sobj, nil
+}
+
+func isInvalidFieldName(fieldName string) bool {
+	// allow field to end with __c/__r for custom fields/relationships
+	fieldName = strings.TrimSuffix(fieldName, "__c")
+	fieldName = strings.TrimSuffix(fieldName, "__r")
+	return invalidFieldNameRE.MatchString(fieldName)
 }

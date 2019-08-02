@@ -19,11 +19,12 @@ func TestAddField(t *testing.T) {
 		want      SObject
 	}{
 		{true, nil, "", nil, nil},
+		{true, map[string]interface{}{}, "a.,b", nil, nil},
+		{true, map[string]interface{}{}, "a%b", nil, nil},
+		{true, map[string]interface{}(nil), "a", nil, nil},
 		{false, map[string]interface{}{}, "a", nil, map[string]interface{}{"a": nil}},
 		{false, map[string]interface{}{"a": 1}, "a", nil, map[string]interface{}{"a": nil}},
 		{false, map[string]interface{}{"a": 1}, "b", 2, map[string]interface{}{"a": 1, "b": 2}},
-		{false, map[string]interface{}{"a": 1}, "a.b", nil, map[string]interface{}{"a": 1, "a.b": nil}},
-		{false, map[string]interface{}{"a": map[string]interface{}{"b": "1"}}, "a.b", "c", map[string]interface{}{"a": map[string]interface{}{"b": "1"}, "a.b": "c"}},
 		{false, map[string]interface{}{"a": map[string]interface{}{"b": "1"}}, "a", "b", map[string]interface{}{"a": "b"}},
 	}
 
@@ -56,6 +57,7 @@ func TestAddDottedField(t *testing.T) {
 		{false, map[string]interface{}{"a": map[string]interface{}{"b": "1"}}, "a", "b", map[string]interface{}{"a": "b"}},
 		{false, map[string]interface{}{"a.b": 1}, "a.b", 2, map[string]interface{}{"a": map[string]interface{}{"b": 2}, "a.b": 1}},
 		{false, map[string]interface{}{}, "a.b.c", true, map[string]interface{}{"a": map[string]interface{}{"b": map[string]interface{}{"c": true}}}},
+		{false, map[string]interface{}{"a": map[string]interface{}(nil)}, "a.b", 1, map[string]interface{}{"a": map[string]interface{}{"b": 1}}},
 	}
 
 	for _, test := range tests {
@@ -79,12 +81,12 @@ func TestGetField(t *testing.T) {
 	}{
 		{true, nil, "", nil},
 		{true, nil, "a", nil},
+		{true, map[string]interface{}{"a.b": 14}, "a.b", nil},
+		{true, map[string]interface{}{"a": map[string]interface{}{"b": "value"}}, "a.b", nil},
+		{true, map[string]interface{}{"a.b": 14}, "a__b", nil},
 		{true, map[string]interface{}{}, "", nil},
 		{true, map[string]interface{}{}, "a", nil},
 		{false, map[string]interface{}{"a": 14}, "a", 14},
-		{false, map[string]interface{}{"a.b": 14}, "a.b", 14},
-		{false, map[string]interface{}{"a.b": 14}, "a.b", 14},
-		{true, map[string]interface{}{"a": map[string]interface{}{"b": "value"}}, "a.b", nil},
 	}
 
 	for _, test := range tests {
@@ -133,29 +135,87 @@ func TestGetDottedField(t *testing.T) {
 	}
 }
 
-func TestSObjectBuilder(t *testing.T) {
-	sb := NewSObjectBuilder()
-	assert.NotNil(t, sb, "want sobject builder")
-	got := sb.NewField("a", "1").NewDottedField("a.b.c", true).NewDottedField("a.b.d", 19.3).
-		NewField("a.b", "value").Build()
-	var want SObject = map[string]interface{}{
-		"a.b": "value",
-		"a": map[string]interface{}{
-			"b": map[string]interface{}{
-				"c": true,
-				"d": 19.3,
-			},
-		},
+func TestBuild(t *testing.T) {
+	tests := []struct {
+		shouldErr bool
+		fields    []SObjectBuilderField
+		want      SObject
+	}{
+		{true, []SObjectBuilderField{SObjectBuilderField{Name: ""}}, nil},
+		{false, []SObjectBuilderField{SObjectBuilderField{Name: "a"}}, map[string]interface{}{"a": nil}},
+		{false, []SObjectBuilderField{SObjectBuilderField{Name: "a", Value: 1}}, map[string]interface{}{"a": 1}},
+		{true, []SObjectBuilderField{SObjectBuilderField{Name: "a."}}, nil},
+		{true, []SObjectBuilderField{SObjectBuilderField{Name: "a.", Dotted: true}}, nil},
+		{true, []SObjectBuilderField{SObjectBuilderField{Name: "a.b.", Dotted: true}}, nil},
+		{true, []SObjectBuilderField{SObjectBuilderField{Name: "a."}, SObjectBuilderField{Name: "a.", Dotted: true}}, nil},
+		{false, []SObjectBuilderField{SObjectBuilderField{Name: "a.b.c.d", Dotted: true, Value: "e"}}, map[string]interface{}{"a": map[string]interface{}{"b": map[string]interface{}{"c": map[string]interface{}{"d": "e"}}}}},
+		{true, []SObjectBuilderField{SObjectBuilderField{Name: "a.b..d", Dotted: true, Value: "e"}}, nil},
+		{false, []SObjectBuilderField{SObjectBuilderField{Name: "a", Value: map[string]interface{}(nil)}, SObjectBuilderField{Name: "a.b", Dotted: true}}, map[string]interface{}{"a": map[string]interface{}{"b": nil}}},
 	}
 
-	assert.Equal(t, want, got)
+	for _, test := range tests {
+		assertMsg := fmt.Sprintf("input: %v", test)
+		fields := make([]*SObjectBuilderField, 0, len(test.fields))
+		for _, f := range test.fields {
+			fields = append(fields, &f)
+		}
+		sb := &SObjectBuilder{fields}
+		got, err := sb.Build()
+		if test.shouldErr {
+			assert.NotNil(t, err, assertMsg)
+			assert.Nil(t, got, assertMsg)
+		} else {
+			assert.Nil(t, err, assertMsg)
+			assert.Equal(t, test.want, got, assertMsg)
+		}
+	}
+}
+
+func TestInvalidFields(t *testing.T) {
+	tests := []struct {
+		shouldErr bool
+		name      string
+		dotted    bool
+	}{
+		{true, "", false},
+		{true, "", true},
+		{false, "a_b", false},
+		{false, "a.b", true},
+		{true, "a.b", false},
+		{true, "a-b", false},
+		{true, "a!b", false},
+		{true, "a%b", false},
+		{true, "a()b", false},
+		{true, "0", false},
+		{true, "0a", false},
+		{false, "a0", false},
+		{false, "a_0", false},
+		{false, "a.b.c.d.e", true},
+		{true, "a.b.c.d.e_", true},
+		{false, "a.b__c", true},
+		{false, "a.b__r", true},
+		{false, "a.b.c.d__r.e", true},
+		{true, "a.b__d", true},
+	}
+
+	for _, test := range tests {
+		assertMsg := fmt.Sprintf("input :%v", test)
+		sb := &SObjectBuilder{[]*SObjectBuilderField{&SObjectBuilderField{test.name, nil, test.dotted}}}
+		_, err := sb.Build()
+		if test.shouldErr {
+			err, _ := err.(*InvalidFieldError)
+			assert.NotNil(t, err, assertMsg)
+		} else {
+			assert.Nil(t, err, assertMsg)
+		}
+	}
 }
 
 func TestFromSObject(t *testing.T) {
 	rng := rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
 	for i := 0; i < 100; i++ {
 		sobj := randomSObject(rng)
-		assert.Equal(t, sobj, SObjectBuilderFromSObject(sobj).Build())
+		assert.Equal(t, sobj, SObjectBuilderFromSObject(sobj).MustBuild())
 	}
 }
 
@@ -170,5 +230,5 @@ func randomSObject(rng *rand.Rand) SObject {
 		path := strings.Join(s[:], ".")
 		sb.NewDottedField(path, path)
 	}
-	return sb.Build()
+	return sb.MustBuild()
 }
