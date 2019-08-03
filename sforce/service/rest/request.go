@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"path"
 
-	"github.com/Laugusti/go-sforce/sforceerr"
+	"github.com/Laugusti/go-sforce/sforce/sforceerr"
 )
 
 // buildRequest creates a http.Request struct for the api path.

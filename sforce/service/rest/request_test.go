@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Laugusti/go-sforce/credentials"
 	"github.com/Laugusti/go-sforce/internal/testserver"
-	"github.com/Laugusti/go-sforce/session"
+	"github.com/Laugusti/go-sforce/sforce/credentials"
+	"github.com/Laugusti/go-sforce/sforce/session"
 	"github.com/stretchr/testify/assert"
 )
 

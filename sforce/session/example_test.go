@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/Laugusti/go-sforce/credentials"
+	"github.com/Laugusti/go-sforce/sforce/credentials"
 )
 
 func ExampleSession_Login() {

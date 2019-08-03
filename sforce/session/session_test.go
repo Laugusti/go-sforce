@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Laugusti/go-sforce/credentials"
 	"github.com/Laugusti/go-sforce/internal/testserver"
+	"github.com/Laugusti/go-sforce/sforce/credentials"
 	"github.com/stretchr/testify/assert"
 )
 

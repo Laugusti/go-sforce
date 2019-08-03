@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/Laugusti/go-sforce/credentials"
-	"github.com/Laugusti/go-sforce/session"
+	"github.com/Laugusti/go-sforce/sforce/credentials"
+	"github.com/Laugusti/go-sforce/sforce/session"
 )
 
 func ExampleClient_CreateSObject() {

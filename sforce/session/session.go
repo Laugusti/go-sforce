@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Laugusti/go-sforce/credentials"
+	"github.com/Laugusti/go-sforce/sforce/credentials"
 )
 
 const (

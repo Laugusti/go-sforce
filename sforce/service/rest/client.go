@@ -3,7 +3,7 @@ package restclient
 import (
 	"net/http"
 
-	"github.com/Laugusti/go-sforce/session"
+	"github.com/Laugusti/go-sforce/sforce/session"
 )
 
 // Client handles request/response with the Salesforce API.
