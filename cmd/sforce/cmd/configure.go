@@ -12,7 +12,7 @@ import (
 
 const (
 	usernameCfgName     = "SFORCE_USERNAME"
-	passwdCfgName       = "SFORCE_PASSWORD"
+	passwordCfgName     = "SFORCE_PASSWORD"
 	clientIDCfgName     = "SFORCE_CLIENT_ID"
 	clientSecretCfgName = "SFORCE_CLIENT_SECRET"
 
@@ -35,7 +35,7 @@ variables.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// get current values
 		username := credsViper.GetString(usernameCfgName)
-		password := credsViper.GetString(passwdCfgName)
+		password := credsViper.GetString(passwordCfgName)
 		clientID := credsViper.GetString(clientIDCfgName)
 		clientSecret := credsViper.GetString(clientSecretCfgName)
 
@@ -75,7 +75,7 @@ variables.`,
 
 		// set credentials
 		credsViper.Set(usernameCfgName, username)
-		credsViper.Set(passwdCfgName, password)
+		credsViper.Set(passwordCfgName, password)
 		credsViper.Set(clientIDCfgName, clientID)
 		credsViper.Set(clientSecretCfgName, clientSecret)
 		// set config

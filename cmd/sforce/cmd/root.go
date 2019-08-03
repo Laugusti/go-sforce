@@ -24,10 +24,7 @@ var rootCmd = &cobra.Command{
 	Use:   "go-sforce-cli",
 	Short: "go-sforce-cli is a CLI for Salesforce API",
 	Long: `A simple CLI for the Salesforce API written in Go.
-		Complete documentation is available at https://github.com/Laugusti/go-sforce-cli`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	//	Run: func(cmd *cobra.Command, args []string) { },
+ * Complete documentation is available at https://github.com/Laugusti/go-sforce/tree/master/cmd/sforce`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
