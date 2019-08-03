@@ -43,8 +43,8 @@ var configureCmd = &cobra.Command{
 such as your username and password. If your config files does not exists, the sforce CLI
 will create it for you (default location ~/.sforce/config.yml). To keep an existing value
 , hit enter when prompted for the value. When you are prompted for information, the current 
-value will be displayed in [brackets]. Note that the configure command only work with
-values from the config file It does not use any configuration values from environment
+value will be displayed in [brackets]. Note that the configure command only works with
+values from the config file. It does not use any configuration values from environment
 variables.`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
