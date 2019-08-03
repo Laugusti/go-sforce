@@ -19,20 +19,17 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
-	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
 const (
-	usernameCfgName = "SFORCE_USERNAME"
-	passwdCfgName   = "SFORCE_PASSWORD"
-	cidCfgName      = "SFORCE_CLIENT_ID"
-	cSecretCfgName  = "SFORCE_CLIENT_SECRET"
+	usernameCfgName     = "SFORCE_USERNAME"
+	passwdCfgName       = "SFORCE_PASSWORD"
+	clientIDCfgName     = "SFORCE_CLIENT_ID"
+	clientSecretCfgName = "SFORCE_CLIENT_SECRET"
 )
 
 // configureCmd represents the configure command
@@ -41,17 +38,18 @@ var configureCmd = &cobra.Command{
 	Short: "Configure the CLI options.",
 	Long: `Configure the CLI options. You will be prompted for configuration values
 such as your username and password. If your config files does not exists, the sforce CLI
-will create it for you (default location ~/.sforce.yml). To keep an existing value, hit
-enter when prompted for the value. When you are prompted for information, the current 
+will create it for you (default location ~/.sforce/config.yml). To keep an existing value
+, hit enter when prompted for the value. When you are prompted for information, the current 
 value will be displayed in [brackets]. Note that the configure command only work with
 values from the config file It does not use any configuration values from environment
 variables.`,
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// get current values
-		username := viper.GetString(usernameCfgName)
-		password := viper.GetString(passwdCfgName)
-		clientID := viper.GetString(cidCfgName)
-		clientSecret := viper.GetString(cSecretCfgName)
+		username := credsViper.GetString(usernameCfgName)
+		password := credsViper.GetString(passwdCfgName)
+		clientID := credsViper.GetString(clientIDCfgName)
+		clientSecret := credsViper.GetString(clientSecretCfgName)
 
 		// get username
 		username, err := getFromUser("Username", username, false)
@@ -74,31 +72,26 @@ variables.`,
 			return fmt.Errorf("failed to read client secret: %v", err)
 		}
 
-		// set configs
-		viper.Set(usernameCfgName, username)
-		viper.Set(passwdCfgName, password)
-		viper.Set(cidCfgName, clientID)
-		viper.Set(cSecretCfgName, clientSecret)
+		// set credentials
+		credsViper.Set(usernameCfgName, username)
+		credsViper.Set(passwdCfgName, password)
+		credsViper.Set(clientIDCfgName, clientID)
+		credsViper.Set(clientSecretCfgName, clientSecret)
 
-		// create config file if not exist
-		if viper.ConfigFileUsed() == "" {
-			home, err := homedir.Dir()
-			if err != nil {
-				return fmt.Errorf("could not get home directory: %v", err)
-			}
-			f, err := os.Create(filepath.Join(home, ".sforce.yml"))
-			if err != nil {
-				return fmt.Errorf("could not create config file: %v", err)
-			}
-			if err := f.Close(); err != nil {
-				return fmt.Errorf("could not close config file: %v", err)
-			}
+		// create file if not exist
+		if err := createDefaultFileIfNotExits(credsViper, "credentials.yml"); err != nil {
+			return err
 		}
+
 		// write config to file
-		return viper.WriteConfig()
+		if err := credsViper.WriteConfig(); err != nil {
+			return err
+		}
+		return nil
 	},
 }
 
+// getFromUser asks user for input and returns the input string.
 func getFromUser(name, current string, secret bool) (string, error) {
 	value := current
 	// mask if secret
@@ -123,6 +116,7 @@ func getFromUser(name, current string, secret bool) (string, error) {
 	return value, nil
 }
 
+// readInput reads input from stdin.
 func readInput() (string, error) {
 	s, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	if err != nil {
@@ -131,7 +125,7 @@ func readInput() (string, error) {
 	return strings.TrimSpace(s), nil
 }
 
-// readSecret does not echo input
+// readSecret reads input from stdin but does not echo.
 func readSecret() (string, error) {
 	b, err := terminal.ReadPassword(int(os.Stdin.Fd()))
 	fmt.Println()
@@ -143,14 +137,4 @@ func readSecret() (string, error) {
 
 func init() {
 	rootCmd.AddCommand(configureCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// configureCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// configureCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
