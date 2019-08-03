@@ -19,8 +19,10 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
+	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/crypto/ssh/terminal"
@@ -38,7 +40,12 @@ var configureCmd = &cobra.Command{
 	Use:   "configure",
 	Short: "Configure the CLI options.",
 	Long: `Configure the CLI options. You will be prompted for configuration values
-such as your username and password.`,
+such as your username and password. If your config files does not exists, the sforce CLI
+will create it for you (default location ~/.sforce.yml). To keep an existing value, hit
+enter when prompted for the value. When you are prompted for information, the current 
+value will be displayed in [brackets]. Note that the configure command only work with
+values from the config file It does not use any configuration values from environment
+variables.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// get current values
 		username := viper.GetString(usernameCfgName)
@@ -73,6 +80,20 @@ such as your username and password.`,
 		viper.Set(cidCfgName, clientID)
 		viper.Set(cSecretCfgName, clientSecret)
 
+		// create config file if not exist
+		if viper.ConfigFileUsed() == "" {
+			home, err := homedir.Dir()
+			if err != nil {
+				return fmt.Errorf("could not get home directory: %v", err)
+			}
+			f, err := os.Create(filepath.Join(home, ".sforce.yml"))
+			if err != nil {
+				return fmt.Errorf("could not create config file: %v", err)
+			}
+			if err := f.Close(); err != nil {
+				return fmt.Errorf("could not close config file: %v", err)
+			}
+		}
 		// write config to file
 		return viper.WriteConfig()
 	},
@@ -86,11 +107,20 @@ func getFromUser(name, current string, secret bool) (string, error) {
 	}
 	fmt.Printf("%s [%s]: ", name, value)
 
-	// do not echo if secret
+	var err error
 	if secret {
-		return readSecret()
+		value, err = readSecret()
+	} else {
+		value, err = readInput()
 	}
-	return readInput()
+	if err != nil {
+		return "", err
+	}
+
+	if value == "" {
+		return current, nil
+	}
+	return value, nil
 }
 
 func readInput() (string, error) {
@@ -100,6 +130,8 @@ func readInput() (string, error) {
 	}
 	return strings.TrimSpace(s), nil
 }
+
+// readSecret does not echo input
 func readSecret() (string, error) {
 	b, err := terminal.ReadPassword(int(os.Stdin.Fd()))
 	fmt.Println()
