@@ -107,7 +107,7 @@ func TestLogin(t *testing.T) {
 
 		// create new session
 		sess := Must(New(server.URL(), test.apiVersion, creds))
-		sess.httpClient = server.Client()
+		sess.HTTPClient = server.Client()
 
 		// assert session does not have token
 		assert.Nil(t, sess.requestToken, assertMsg)
@@ -145,7 +145,7 @@ func TestConcurrentSession(t *testing.T) {
 
 	// create new session
 	sess := Must(New(server.URL(), "1", credentials.New("u", "p", "ci", "cs")))
-	sess.httpClient = server.Client()
+	sess.HTTPClient = server.Client()
 
 	// channel with duration
 	durationChan := make(chan time.Duration)

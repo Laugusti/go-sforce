@@ -23,7 +23,7 @@ type Session struct {
 	LoginURL     string
 	APIVersion   string
 	creds        *credentials.OAuth
-	httpClient   *http.Client
+	HTTPClient   *http.Client
 	mu           sync.Mutex // guards request token
 	requestToken *RequestToken
 }
@@ -61,7 +61,7 @@ func New(loginURL, apiVersion string, creds *credentials.OAuth) (*Session, error
 			ClientID:     creds.ClientID,
 			ClientSecret: creds.ClientSecret,
 		},
-		httpClient: &http.Client{},
+		HTTPClient: &http.Client{},
 	}, nil
 }
 
@@ -94,7 +94,7 @@ func (s *Session) Login() error {
 	form.Set("password", s.creds.Password)
 
 	// do post for request token
-	resp, err := s.httpClient.PostForm(u.String(), form)
+	resp, err := s.HTTPClient.PostForm(u.String(), form)
 	if err != nil {
 		return fmt.Errorf("failed to get access token: %v", err)
 	}
