@@ -21,8 +21,8 @@ var (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "go-sforce-cli",
-	Short: "go-sforce-cli is a CLI for Salesforce API",
+	Use:   "sforce",
+	Short: "sforce is a CLI for Salesforce API",
 	Long: `A simple CLI for the Salesforce API written in Go.
  * Complete documentation is available at https://github.com/Laugusti/go-sforce/tree/master/cmd/sforce`,
 }
@@ -31,7 +31,6 @@ var rootCmd = &cobra.Command{
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
 		os.Exit(1)
 	}
 }
