@@ -121,6 +121,8 @@ func TestLogin(t *testing.T) {
 		// session assertions
 		if test.shouldErr {
 			assert.NotNil(t, err, assertMsg)
+			_, ok := err.(*LoginError)
+			assert.True(t, ok, assertMsg)
 			assert.Nil(t, sess.requestToken, assertMsg)
 		} else {
 			assert.Nil(t, err, assertMsg)
@@ -194,7 +196,7 @@ func delayNextLogin(server *testserver.Server, delayDuration time.Duration) {
 			time.Sleep(delayDuration)
 		}
 		handledCount++
-		h.Handle(w)
+		_ = h.Handle(w)
 	}
 }
 

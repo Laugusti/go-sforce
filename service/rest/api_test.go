@@ -9,6 +9,7 @@ import (
 	"github.com/Laugusti/go-sforce/credentials"
 	"github.com/Laugusti/go-sforce/internal/testserver"
 	"github.com/Laugusti/go-sforce/session"
+	"github.com/Laugusti/go-sforce/sforceerr"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,13 +21,13 @@ const (
 var (
 	unauthorizedHandler = &testserver.JSONResponseHandler{
 		StatusCode: http.StatusUnauthorized,
-		Body: APIError{
+		Body: session.LoginError{
 			Message:   "Session expired or invalid",
 			ErrorCode: "INVALID_SESSION_ID"},
 	}
 
 	// api error
-	genericErr = APIError{Message: "Generic API error", ErrorCode: "GENERIC_ERROR"}
+	genericErr = sforceerr.APIError{Message: "Generic API error", ErrorCode: "GENERIC_ERROR"}
 
 	// request validators
 	jsonContentTypeValidator = &testserver.HeaderValidator{Key: "Content-Type", Value: "application/json"}

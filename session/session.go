@@ -107,7 +107,12 @@ func (s *Session) Login() error {
 			return fmt.Errorf("unexpected status (want %d, got %d): failed to read response body",
 				200, resp.StatusCode)
 		}
-		return fmt.Errorf("unexpected status (want %d, got %d): %s", 200, resp.StatusCode, b)
+		var loginErr LoginError
+		if err := json.Unmarshal(b, &loginErr); err != nil || !loginErr.hasError() {
+			return fmt.Errorf("unexpected status (want %d, got %d): %s",
+				200, resp.StatusCode, b)
+		}
+		return &loginErr
 	}
 
 	// unmarshal response to token

@@ -14,10 +14,3 @@ type QueryResult struct {
 	NextRecordsURL string    `json:"nextRecordsURL,omitempty"`
 	Records        []SObject `json:"records"`
 }
-
-// APIError is an unsuccessful response from the Salesforce API.
-type APIError struct {
-	Fields    []string `json:"fields"`
-	Message   string   `json:"message"`
-	ErrorCode string   `json:"errorCode"`
-}
