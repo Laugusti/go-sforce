@@ -29,6 +29,9 @@ import (
 var (
 	credsCfgFile string
 	credsViper   *viper.Viper
+
+	configCfgFile string
+	configViper   *viper.Viper
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -59,14 +62,17 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&credsCfgFile, "credentials", "", "credentials file (default is $HOME/.sforce/credentials.yml)")
+	rootCmd.PersistentFlags().StringVar(&configCfgFile, "config", "", "config file (default is $HOME/.sforce/config.yml)")
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
 	credsViper = getViper(credsCfgFile, "credentials")
+	configViper = getViper(configCfgFile, "config")
 
 	// If a config file is found, read it in.
 	_ = credsViper.ReadInConfig()
+	_ = configViper.ReadInConfig()
 }
 
 func getViper(cfgFile, defaultCfgName string) *viper.Viper {
@@ -82,7 +88,7 @@ func getViper(cfgFile, defaultCfgName string) *viper.Viper {
 			os.Exit(1)
 		}
 
-		// Search config in ~/sforce directory with name.
+		// Search config in ~/.sforce directory with name.
 		v.AddConfigPath(cfgHome)
 		v.SetConfigName(defaultCfgName)
 	}
@@ -117,6 +123,7 @@ func createDefaultFileIfNotExits(v *viper.Viper, filename string) error {
 	return nil
 }
 
+// defaultCfgHome returns the default path for the sforce config files (~/.sforce).
 func defaultCfgHome() (string, error) {
 	// get home directory
 	home, err := homedir.Dir()

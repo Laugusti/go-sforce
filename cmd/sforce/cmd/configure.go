@@ -30,6 +30,9 @@ const (
 	passwdCfgName       = "SFORCE_PASSWORD"
 	clientIDCfgName     = "SFORCE_CLIENT_ID"
 	clientSecretCfgName = "SFORCE_CLIENT_SECRET"
+
+	loginURLCfgName   = "SFORCE_LOGIN_URL"
+	apiVersionCfgName = "SFORCE_API_VERSION"
 )
 
 // configureCmd represents the configure command
@@ -51,6 +54,9 @@ variables.`,
 		clientID := credsViper.GetString(clientIDCfgName)
 		clientSecret := credsViper.GetString(clientSecretCfgName)
 
+		loginURL := configViper.GetString(loginURLCfgName)
+		apiVersion := configViper.GetString(apiVersionCfgName)
+
 		// get username
 		username, err := getFromUser("Username", username, false)
 		if err != nil {
@@ -71,15 +77,31 @@ variables.`,
 		if err != nil {
 			return fmt.Errorf("failed to read client secret: %v", err)
 		}
+		// get login url
+		loginURL, err = getFromUser("Login URL", loginURL, false)
+		if err != nil {
+			return fmt.Errorf("failed to read login url: %v", err)
+		}
+		// get api version
+		apiVersion, err = getFromUser("API Version", apiVersion, false)
+		if err != nil {
+			return fmt.Errorf("failed to read login url: %v", err)
+		}
 
 		// set credentials
 		credsViper.Set(usernameCfgName, username)
 		credsViper.Set(passwdCfgName, password)
 		credsViper.Set(clientIDCfgName, clientID)
 		credsViper.Set(clientSecretCfgName, clientSecret)
+		// set config
+		configViper.Set(loginURLCfgName, loginURL)
+		configViper.Set(apiVersionCfgName, apiVersion)
 
 		// create file if not exist
 		if err := createDefaultFileIfNotExits(credsViper, "credentials.yml"); err != nil {
+			return err
+		}
+		if err := createDefaultFileIfNotExits(configViper, "config.yml"); err != nil {
 			return err
 		}
 
@@ -87,7 +109,7 @@ variables.`,
 		if err := credsViper.WriteConfig(); err != nil {
 			return err
 		}
-		return nil
+		return configViper.WriteConfig()
 	},
 }
 
