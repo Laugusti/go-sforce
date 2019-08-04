@@ -1,4 +1,4 @@
-package restclient
+package rest
 
 import (
 	"encoding/json"
@@ -26,7 +26,7 @@ func ExampleClient_CreateSObject() {
 		credentials.New(username, password, clientID, clientSecret)))
 
 	// create salesforce client
-	client := New(sess)
+	client := NewClient(sess)
 
 	sobj := NewSObjectBuilder().
 		NewField("Name", "test").
@@ -64,7 +64,7 @@ func ExampleClient_GetSObject() {
 		credentials.New(username, password, clientID, clientSecret)))
 
 	// create salesforce client
-	client := New(sess)
+	client := NewClient(sess)
 
 	out, err := client.GetSObject(&GetSObjectInput{
 		SObjectName: "Object",

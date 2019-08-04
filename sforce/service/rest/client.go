@@ -1,4 +1,4 @@
-package restclient
+package rest
 
 import (
 	"net/http"
@@ -13,6 +13,6 @@ type Client struct {
 }
 
 // New returns a new rest client for the Salesforce session.
-func New(sess *session.Session) *Client {
+func NewClient(sess *session.Session) *Client {
 	return &Client{sess, &http.Client{}}
 }

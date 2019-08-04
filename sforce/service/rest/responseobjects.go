@@ -1,4 +1,4 @@
-package restclient
+package rest
 
 // UpsertResult is a successful response from the Salesforce API after an upsert.
 type UpsertResult struct {
