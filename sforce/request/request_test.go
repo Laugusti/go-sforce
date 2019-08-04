@@ -15,18 +15,21 @@ func TestDoWithResult(t *testing.T) {
 	s := testserver.New(t)
 	defer s.Stop()
 
-	req := New(session.Must(session.New(
+	// create session
+	sess := session.Must(session.New(
 		s.URL(),
 		"version",
 		credentials.New("user", "pass", "cid", "csecret"),
-	)))
-	req.sess.HTTPClient = s.Client()
+	))
+	sess.HTTPClient = s.Client()
+	// login
 	s.HandlerFunc = testserver.StaticJSONHandlerFunc(t, http.StatusOK,
 		session.RequestToken{
 			InstanceURL: s.URL(),
 		})
-	assert.Nil(t, req.sess.Login())
+	assert.Nil(t, sess.Login())
 
+	// use response variable as response
 	var response string
 	s.HandlerFunc = func(w http.ResponseWriter, h *http.Request) {
 		_, _ = w.Write([]byte(response))
@@ -48,13 +51,16 @@ func TestDoWithResult(t *testing.T) {
 
 	for _, test := range tests {
 		assertMsg := fmt.Sprintf("input: %v", test)
+		// set response
 		response = test.response
+
 		var got interface{}
-		err := req.DoWithResult(&Operation{Method: "Post"},
+		req := New(sess, &Operation{Method: "POST"},
 			NewResultExpectation(test.respType, http.StatusOK),
 			&got,
 		)
 
+		err := req.Send()
 		if test.shouldErr {
 			assert.NotNil(t, err, assertMsg)
 		} else {

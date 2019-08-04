@@ -19,8 +19,7 @@ type ResultType int
 
 // result types
 const (
-	DiscardResult ResultType = iota
-	JSONResult
+	JSONResult ResultType = iota
 	XMLResult
 )
 
@@ -45,16 +44,21 @@ func NewResultExpectation(respType ResultType, statusCodes ...int) *ResultExpect
 
 // Request is used to execute an Operation.
 type Request struct {
-	sess *session.Session
+	sess            *session.Session
+	op              *Operation
+	expect          *ResultExpectation
+	result          interface{}
+	preSendHandlers []func(*http.Request)
 }
 
 // New creates a new Request.
-func New(sess *session.Session) *Request {
-	return &Request{sess}
+func New(sess *session.Session, op *Operation, expect *ResultExpectation,
+	result interface{}, preSendHandlers ...func(*http.Request)) *Request {
+	return &Request{sess, op, expect, result, preSendHandlers}
 }
 
 // buildRequest creates a http.Request struct for the api path.
-func (r *Request) buildRequest(apiPath, rawQuery, method string, body io.Reader) (*http.Request, error) {
+func (r *Request) buildRequest(op *Operation, preSendHandlers []func(*http.Request)) (*http.Request, error) {
 	// ensure session is authorized
 	if !r.sess.HasToken() {
 		if err := r.sess.Login(); err != nil {
@@ -63,31 +67,32 @@ func (r *Request) buildRequest(apiPath, rawQuery, method string, body io.Reader)
 	}
 
 	// build api url using instance url
-	apiURL, err := joinURL(r.sess.InstanceURL(), apiPath)
+	apiURL, err := joinURL(r.sess.InstanceURL(), op.APIPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build request: %v", err)
 	}
 	// add query to api url
 	u, _ := url.Parse(apiURL)
-	u.RawQuery = rawQuery
+	u.RawQuery = op.Query
 	apiURL = u.String()
 
 	// creates http reqeust
-	req, err := http.NewRequest(method, apiURL, body)
+	req, err := http.NewRequest(op.Method, apiURL, op.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build request: %v", err)
 	}
 
-	// set auth and content type
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", r.sess.AccessToken()))
-	req.Header.Set("Content-Type", "application/json")
+	// run pre send handlers
+	for _, h := range preSendHandlers {
+		h(req)
+	}
 
 	return req, nil
 }
 
-// DoWithResult executes the http operation and unmarshals the result into the interface.
-func (r *Request) DoWithResult(op *Operation, expectedResponse *ResultExpectation, result interface{}) error {
-	req, err := r.buildRequest(op.APIPath, op.Query, op.Method, op.Body)
+// Send executes the http operation and unmarshals the result into the interface.
+func (r *Request) Send() error {
+	req, err := r.buildRequest(r.op, r.preSendHandlers)
 	if err != nil {
 		return err
 	}
@@ -121,15 +126,13 @@ func (r *Request) DoWithResult(op *Operation, expectedResponse *ResultExpectatio
 	}
 
 	// unmarshal response based on wanted type
-	switch expectedResponse.Type {
-	case DiscardResult:
-		return nil
+	switch r.expect.Type {
 	case JSONResult:
 		return unmarshalResponse(json.Unmarshal, resp,
-			expectedResponse.StatusCodes, result)
+			r.expect.StatusCodes, r.result)
 	case XMLResult:
 		return unmarshalResponse(xml.Unmarshal, resp,
-			expectedResponse.StatusCodes, result)
+			r.expect.StatusCodes, r.result)
 	default:
 		return errors.New("unknown result type")
 	}
@@ -143,7 +146,7 @@ func unmarshalResponse(unmarshalFunc func([]byte, interface{}) error, resp *http
 		return fmt.Errorf("failed to read response body: %v", err)
 	}
 	// return api error if status code is unexpected
-	if len(validCodes) > 0 && !isInSlice(resp.StatusCode, validCodes) {
+	if !isInSlice(resp.StatusCode, validCodes) {
 		var apiErr sforceerr.APIError
 		if err := unmarshalFunc(data, apiErr); err != nil || apiErr.ErrorCode == "" {
 			// failed to get api error

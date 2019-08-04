@@ -34,12 +34,15 @@ func ExampleClient_CreateSObject() {
 		NewDottedField("Parent.ExternalId", "parentId").
 		MustBuild()
 
-	res, err := client.CreateSObject("Object", sobj)
+	out, err := client.CreateSObject(&CreateSObjectInput{
+		SObjectName: "Object",
+		SObject:     sobj,
+	})
 	if err != nil {
 		log.Fatalf("create failed: %v", err)
 	}
 
-	fmt.Println(res)
+	fmt.Println(out.Result)
 
 	// Output:
 	// &{00xTEST00123 true []}
@@ -63,49 +66,18 @@ func ExampleClient_GetSObject() {
 	// create salesforce client
 	client := New(sess)
 
-	sobj, err := client.GetSObject("Object", "salesforceId")
+	out, err := client.GetSObject(&GetSObjectInput{
+		SObjectName: "Object",
+		SObjectID:   "salesforceId",
+	})
 	if err != nil {
 		log.Fatalf("get failed: %v", err)
 	}
 
-	fmt.Println(sobj)
+	fmt.Println(out.SObject)
 
 	// Output:
 	// map[Field1:Value Id:salesforceId Name:test]
-}
-
-func ExampleClient_FullQuery() {
-	loginURL, tearDown := testSalesforceServer(http.StatusOK, QueryResult{
-		TotalSize:      3,
-		Done:           true,
-		NextRecordsURL: "",
-		Records: []SObject{
-			NewSObjectBuilder().NewField("Id", "id1").MustBuild(),
-			NewSObjectBuilder().NewField("Id", "id2").MustBuild(),
-			NewSObjectBuilder().NewField("Id", "id3").MustBuild(),
-		},
-	},
-	)
-	defer tearDown()
-
-	// create unauthenticated session
-	username, password := "user@example.com", "P@s$w0rD"
-	clientID, clientSecret := "test1n3289s32", `testjfa9a"afa8"'132%$#@@`
-	sess := session.Must(session.New(loginURL, "42.0",
-		credentials.New(username, password, clientID, clientSecret)))
-
-	// create salesforce client
-	client := New(sess)
-
-	res, err := client.FullQuery("select Id from Object")
-	if err != nil {
-		log.Fatalf("query failed: %v", err)
-	}
-
-	fmt.Println(res)
-
-	// Output:
-	// &{3 true  [map[Id:id1] map[Id:id2] map[Id:id3]]}
 }
 
 func testSalesforceServer(statusCode int, body interface{}) (string, func()) {
