@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Laugusti/go-sforce/credentials"
-	restclient "github.com/Laugusti/go-sforce/service/rest"
-	"github.com/Laugusti/go-sforce/session"
+	"github.com/Laugusti/go-sforce/sforce/credentials"
+	restclient "github.com/Laugusti/go-sforce/sforce/service/rest"
+	"github.com/Laugusti/go-sforce/sforce/session"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
