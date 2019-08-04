@@ -1,4 +1,4 @@
-package rest
+package restapi
 
 // UpsertResult is a successful response from the Salesforce API after an upsert.
 type UpsertResult struct {
