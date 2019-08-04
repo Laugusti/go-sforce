@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	restclient "github.com/Laugusti/go-sforce/sforce/service/rest"
+	"github.com/Laugusti/go-sforce/sforce/api/rest"
 	"github.com/spf13/cobra"
 )
 
@@ -18,7 +18,7 @@ var getSObjectCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(2),
 	Short: "Retrieves the SObject using the Object Name and Object ID",
 	Run: func(cmd *cobra.Command, args []string) {
-		input := &restclient.GetSObjectInput{
+		input := &rest.GetSObjectInput{
 			SObjectName: args[0],
 			SObjectID:   args[1],
 			Fields:      strings.Split(fields, ","),
