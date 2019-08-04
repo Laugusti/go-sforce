@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Laugusti/go-sforce/sforce/api/rest"
+	restapi "github.com/Laugusti/go-sforce/sforce/api/rest"
 	"github.com/Laugusti/go-sforce/sforce/credentials"
 	"github.com/Laugusti/go-sforce/sforce/session"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-var restClient *rest.Client
+var restClient *restapi.Client
 
 // restCmd represents the rest command
 var restCmd = &cobra.Command{
@@ -42,7 +42,7 @@ var restCmd = &cobra.Command{
 		}
 
 		// create rest client
-		restClient = rest.NewClient(session.Must(session.New(loginURL, apiVersion,
+		restClient = restapi.NewClient(session.Must(session.New(loginURL, apiVersion,
 			credentials.New(username, password, clientID, clientSecret))))
 		return nil
 	},
