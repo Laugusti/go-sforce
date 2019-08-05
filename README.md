@@ -10,16 +10,19 @@ Go Modules support coming soon.
 ## Reference Documentation
 * [Package Reference](https://godoc.org/github.com/Laugusti/go-sforce/)
 ## Overview of Packages
-* credentials - Provides OAuth credentials need to make API requests.
-* session - Used to request an access token from the Salesfore API using the OAuth credentials.
-* service - Clients for the Salesforce API.
+* sforce - SDK core.
+  * credentials - Provides OAuth credentials need to make API requests.
+  * request - Provides the API request sending logic for the SDK.
+  * session - Provides means to authenticate to the Salesfore API using the OAuth credentials.
+  * sforcerr - Provides the error interface for API response errors.
+* api - Clients for the Salesforce API.
 ## Usage
 ### Create a session
 1. Create unauthenticated session
 ```
 username, password := "user@example.com", "P@s$w0rD"
 clientID, clientSecret := "test1n3289s32", `testjfa9a"afa8"'132%$#@@`
-sess := session.Must(session.New("http://login.example.com", "42.0",
+sess := session.Must(session.New("http://test.salesforce.com", "42.0",
 	credentials.New(username, password, clientID, clientSecret)))
 ```
 2. Optionally request an access token before passing to client
@@ -32,7 +35,7 @@ if err != nil {
 ### Rest API client
 1.  Create rest client from a session
 ```
-restClient := rest.New(sess)
+restClient := restapi.NewClient(sess)
 ```
 2. Supported Methods
 - CreateSObject - Used to creates a SObject in Salesforce using the object type.
@@ -43,7 +46,6 @@ restClient := rest.New(sess)
 - DeleteSObject - Used to delete a SObject using the object type and Salesforce id.
 - Query - Used to execute a SOQL query in Salesforce.
 - QueryMore - Used to get the remaining result of a SOQL query.
-- FullQuery - Not supported by the Salesforce API. This exeuctes any and all necessary QueryMore for a query.
 
 ### Bulk API client
 ```
