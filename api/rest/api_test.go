@@ -62,7 +62,7 @@ func createClientAndServer(t *testing.T) (*Client, *testserver.Server) {
 	s.RequestCount = 0 // reset counter
 
 	// create client
-	client := &Client{sess, s.Client()}
+	client := &Client{sess}
 
 	return client, s
 }
