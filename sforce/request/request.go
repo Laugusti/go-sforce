@@ -148,7 +148,7 @@ func unmarshalResponse(unmarshalFunc func([]byte, interface{}) error, resp *http
 	// return api error if status code is unexpected
 	if !isInSlice(resp.StatusCode, validCodes) {
 		var apiErr sforceerr.APIError
-		if err := unmarshalFunc(data, apiErr); err != nil || apiErr.ErrorCode == "" {
+		if err := unmarshalFunc(data, &[]*sforceerr.APIError{&apiErr}); err != nil || apiErr.ErrorCode == "" {
 			// failed to get api error
 			return fmt.Errorf("unexpected status code (want %v, got %d): %s",
 				validCodes, resp.StatusCode, data)

@@ -39,8 +39,6 @@ func TestDoWithResult(t *testing.T) {
 		response  string
 		respType  ResultType
 	}{
-		{},
-		{false, ``, DiscardResult},
 		{true, ``, JSONResult},
 		{true, ``, XMLResult},
 		{false, `{"key":"value"}`, JSONResult},

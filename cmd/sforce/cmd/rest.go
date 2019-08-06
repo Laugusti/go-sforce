@@ -2,11 +2,13 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	restapi "github.com/Laugusti/go-sforce/api/rest"
 	"github.com/Laugusti/go-sforce/sforce/credentials"
 	"github.com/Laugusti/go-sforce/sforce/session"
+	"github.com/Laugusti/go-sforce/sforce/sforceerr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -46,6 +48,22 @@ var restCmd = &cobra.Command{
 			credentials.New(username, password, clientID, clientSecret))))
 		return nil
 	},
+}
+
+func exitIfError(operation string, err error) {
+	if err == nil {
+		return
+	}
+	switch err := err.(type) {
+	case *session.LoginError:
+		fmt.Fprintf(os.Stderr, "Login failed (%s): %s\n", err.ErrorCode, err.Message)
+	case *sforceerr.APIError:
+		fmt.Fprintf(os.Stderr, "An error occurred (%s) when calling the %s operation: %s\n",
+			err.ErrorCode, operation, err.Message)
+	default:
+		fmt.Fprint(os.Stderr, err)
+	}
+	os.Exit(1)
 }
 
 func getConfigString(v *viper.Viper, cfgName string, missing *[]string) string {

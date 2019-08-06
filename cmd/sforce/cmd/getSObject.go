@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"strings"
 
@@ -24,19 +23,12 @@ var getSObjectCmd = &cobra.Command{
 			Fields:      strings.Split(fields, ","),
 		}
 		out, err := restClient.GetSObject(input)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
+		exitIfError("GetSObject", err)
 
 		// create json encoder to write SObject to stdout
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "\t")
-
-		if err := enc.Encode(out.SObject); err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
+		exitIfError("GetSObject", enc.Encode(out.SObject))
 	},
 }
 
