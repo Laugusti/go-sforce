@@ -84,7 +84,6 @@ func (c *Client) GetSObject(input *GetSObjectInput) (*GetSObjectOutput, error) {
 	if len(input.Fields) > 0 {
 		query = "fields=" + strings.Join(input.Fields, ",")
 	}
-
 	var sobj SObject
 	req := c.newRequest(&request.Operation{
 		Method:   http.MethodGet,
@@ -101,6 +100,7 @@ type GetSObjectByExternalIDInput struct {
 	SObjectName     string
 	ExternalIDField string
 	ExternalID      string
+	Fields          []string
 }
 
 // GetSObjectByExternalIDOutput stores the output after retrieving a SObject by external
@@ -121,10 +121,20 @@ func (c *Client) GetSObjectByExternalID(input *GetSObjectByExternalIDInput) (*Ge
 	if input.ExternalID == "" {
 		return nil, errors.New("external id is required")
 	}
+	for _, f := range input.Fields {
+		if isInvalidFieldName(f) {
+			return nil, errors.New("invalid field list")
+		}
+	}
 
+	query := ""
+	if len(input.Fields) > 0 {
+		query = "fields=" + strings.Join(input.Fields, ",")
+	}
 	var sobj SObject
 	req := c.newRequest(&request.Operation{
-		Method: http.MethodGet,
+		Method:   http.MethodGet,
+		RawQuery: query,
 		APIPath: path.Join(fmt.Sprintf(sObjectPath, c.sess.APIVersion),
 			input.SObjectName, input.ExternalIDField, input.ExternalID),
 	}, request.JSONResult, &sobj, http.StatusOK)
