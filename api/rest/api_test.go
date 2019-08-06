@@ -139,14 +139,18 @@ func TestGetSObject(t *testing.T) {
 		assertMsg := fmt.Sprintf("input: %v", test)
 		path := fmt.Sprintf("/services/data/%s/sobjects/%s/%s", apiVersion, test.objectType,
 			test.objectID)
+		query := url.Values{}
+		query.Add("fields", "Field1,Field2,Field3")
+
 		validators := []testserver.RequestValidator{authTokenValidator, jsonContentTypeValidator,
-			emptyQueryValidator, emptyBodyValidator, &testserver.PathValidator{Path: path},
-			getMethodValidator}
+			emptyBodyValidator, &testserver.PathValidator{Path: path}, getMethodValidator,
+			&testserver.QueryValidator{query}}
 
 		requestFunc := func() (interface{}, error) {
 			return client.GetSObject(&GetSObjectInput{
 				SObjectName: test.objectType,
 				SObjectID:   test.objectID,
+				Fields:      []string{"Field1", "Field2", "Field3"},
 			})
 		}
 		successFunc := func(res interface{}) {

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strings"
 
 	"github.com/Laugusti/go-sforce/sforce/request"
 )
@@ -73,10 +74,21 @@ func (c *Client) GetSObject(input *GetSObjectInput) (*GetSObjectOutput, error) {
 	if input.SObjectID == "" {
 		return nil, errors.New("sobject id is required")
 	}
+	for _, f := range input.Fields {
+		if isInvalidFieldName(f) {
+			return nil, errors.New("invalid field list")
+		}
+	}
+
+	query := ""
+	if len(input.Fields) > 0 {
+		query = "fields=" + strings.Join(input.Fields, ",")
+	}
 
 	var sobj SObject
 	req := c.newRequest(&request.Operation{
-		Method: http.MethodGet,
+		Method:   http.MethodGet,
+		RawQuery: query,
 		APIPath: path.Join(fmt.Sprintf(sObjectPath, c.sess.APIVersion),
 			input.SObjectName, input.SObjectID),
 	}, request.JSONResult, &sobj, http.StatusOK)
@@ -250,9 +262,9 @@ func (c *Client) Query(input *QueryInput) (*QueryOutput, error) {
 
 	var queryResult QueryResult
 	req := c.newRequest(&request.Operation{
-		Method:  http.MethodGet,
-		APIPath: fmt.Sprintf(queryPath, c.sess.APIVersion),
-		Query:   fmt.Sprintf("q=%s", url.QueryEscape(input.Query)),
+		Method:   http.MethodGet,
+		APIPath:  fmt.Sprintf(queryPath, c.sess.APIVersion),
+		RawQuery: fmt.Sprintf("q=%s", url.QueryEscape(input.Query)),
 	}, request.JSONResult, &queryResult, http.StatusOK)
 	return &QueryOutput{&queryResult}, req.Send()
 }
