@@ -78,8 +78,8 @@ func getViper(cfgFile, defaultCfgName string) *viper.Viper {
 	return v
 }
 
-// createDefaultFileIfNotExits creates the file if no config file is in use
-func createDefaultFileIfNotExits(v *viper.Viper, filename string) error {
+// createDefaultFileIfNotExists creates the file if no config file is in use
+func createDefaultFileIfNotExists(v *viper.Viper, filename string) error {
 	if v.ConfigFileUsed() != "" {
 		return nil
 	}
