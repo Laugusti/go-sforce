@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	restapi "github.com/Laugusti/go-sforce/sforce/api/rest"
+	restapi "github.com/Laugusti/go-sforce/api/rest"
 	"github.com/Laugusti/go-sforce/sforce/credentials"
 	"github.com/Laugusti/go-sforce/sforce/session"
 	"github.com/spf13/cobra"
