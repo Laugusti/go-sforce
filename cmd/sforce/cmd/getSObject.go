@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"os"
-	"strings"
 
 	restapi "github.com/Laugusti/go-sforce/api/rest"
 	"github.com/spf13/cobra"
@@ -20,7 +19,7 @@ var getSObjectCmd = &cobra.Command{
 		input := &restapi.GetSObjectInput{
 			SObjectName: args[0],
 			SObjectID:   args[1],
-			Fields:      strings.Split(fields, ","),
+			Fields:      splitString(fields, ","),
 		}
 		out, err := restClient.GetSObject(input)
 		exitIfError("GetSObject", err)
