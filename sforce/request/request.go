@@ -25,10 +25,10 @@ const (
 
 // Operation represents an http operation.
 type Operation struct {
-	Method  string
-	APIPath string
-	Query   string
-	Body    io.Reader
+	Method   string
+	APIPath  string
+	RawQuery string
+	Body     io.Reader
 }
 
 // ResultExpectation stores the expected result type and status codes.
@@ -73,7 +73,7 @@ func (r *Request) buildRequest(op *Operation, preSendHandlers []func(*http.Reque
 	}
 	// add query to api url
 	u, _ := url.Parse(apiURL)
-	u.RawQuery = op.Query
+	u.RawQuery = op.RawQuery
 	apiURL = u.String()
 
 	// creates http reqeust
