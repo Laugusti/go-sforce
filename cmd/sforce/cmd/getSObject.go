@@ -31,7 +31,7 @@ var getSObjectCmd = &cobra.Command{
 
 		// create json encoder to write SObject to stdout
 		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
+		enc.SetIndent("", "\t")
 
 		if err := enc.Encode(out.SObject); err != nil {
 			fmt.Println(err)
