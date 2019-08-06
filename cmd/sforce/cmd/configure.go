@@ -83,10 +83,10 @@ variables.`,
 		configViper.Set(apiVersionCfgName, apiVersion)
 
 		// create file if not exist
-		if err := createDefaultFileIfNotExits(credsViper, "credentials.yml"); err != nil {
+		if err := createDefaultFileIfNotExists(credsViper, "credentials.yml"); err != nil {
 			return err
 		}
-		if err := createDefaultFileIfNotExits(configViper, "config.yml"); err != nil {
+		if err := createDefaultFileIfNotExists(configViper, "config.yml"); err != nil {
 			return err
 		}
 
