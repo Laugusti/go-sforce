@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var fields string
+var sobjFields string
 
 // getSObjectCmd represents the getSObject command
 var getSObjectCmd = &cobra.Command{
@@ -19,7 +19,7 @@ var getSObjectCmd = &cobra.Command{
 		input := &restapi.GetSObjectInput{
 			SObjectName: args[0],
 			SObjectID:   args[1],
-			Fields:      splitString(fields, ","),
+			Fields:      splitString(sobjFields, ","),
 		}
 		out, err := restClient.GetSObject(input)
 		exitIfError("GetSObject", err)
@@ -33,5 +33,5 @@ var getSObjectCmd = &cobra.Command{
 
 func init() {
 	restCmd.AddCommand(getSObjectCmd)
-	getSObjectCmd.Flags().StringVarP(&fields, "fields", "f", "", "Specify the fields you want to retrieve")
+	getSObjectCmd.Flags().StringVarP(&sobjFields, "fields", "f", "", "Specify the fields you want to retrieve")
 }
