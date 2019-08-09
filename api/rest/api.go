@@ -141,20 +141,20 @@ func (c *Client) GetSObjectByExternalID(input *GetSObjectByExternalIDInput) (*Ge
 	return &GetSObjectByExternalIDOutput{sobj}, req.Send()
 }
 
-// UpsertSObjectInput stores the input for upserting a SObject by ID.
-type UpsertSObjectInput struct {
+// UpdateSObjectInput stores the input for updating a SObject by ID.
+type UpdateSObjectInput struct {
 	SObjectName string
 	SObjectID   string
 	SObject     SObject
 }
 
-// UpsertSObjectOutput stores the output after upserting a SObject By ID.
-type UpsertSObjectOutput struct {
+// UpdateSObjectOutput stores the output after updating a SObject By ID.
+type UpdateSObjectOutput struct {
 	Result *UpsertResult
 }
 
-// UpsertSObject creates/updates the SObject using the Salesforce API.
-func (c *Client) UpsertSObject(input *UpsertSObjectInput) (*UpsertSObjectOutput, error) {
+// UpdateSObject updates the SObject using the Salesforce API.
+func (c *Client) UpdateSObject(input *UpdateSObjectInput) (*UpdateSObjectOutput, error) {
 	// validate parameters
 	if isInvalidFieldName(input.SObjectName) {
 		return nil, errors.New("invalid sobject name")
@@ -177,7 +177,7 @@ func (c *Client) UpsertSObject(input *UpsertSObjectInput) (*UpsertSObjectOutput,
 			input.SObjectName, input.SObjectID),
 		Body: buf,
 	}, request.JSONResult, &result, http.StatusOK, http.StatusCreated)
-	return &UpsertSObjectOutput{&result}, req.Send()
+	return &UpdateSObjectOutput{&result}, req.Send()
 }
 
 // UpsertSObjectByExternalIDInput stores the input for upserting a SObject by external ID.

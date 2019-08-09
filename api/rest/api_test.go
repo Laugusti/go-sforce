@@ -259,7 +259,7 @@ func TestUpsertSObject(t *testing.T) {
 			&testserver.PathValidator{Path: path}, patchMethodValidator}
 
 		requestFunc := func() (interface{}, error) {
-			return client.UpsertSObject(&UpsertSObjectInput{
+			return client.UpdateSObject(&UpdateSObjectInput{
 				SObjectName: test.objectType,
 				SObjectID:   test.objectID,
 				SObject:     test.object,
@@ -267,7 +267,7 @@ func TestUpsertSObject(t *testing.T) {
 		}
 		successFunc := func(res interface{}) {
 			if assert.NotNil(t, res, assertMsg) {
-				out, ok := res.(*UpsertSObjectOutput)
+				out, ok := res.(*UpdateSObjectOutput)
 				if assert.True(t, ok, assertMsg) &&
 					assert.NotNil(t, out, assertMsg) {
 					assert.True(t, out.Result.Success, assertMsg)
