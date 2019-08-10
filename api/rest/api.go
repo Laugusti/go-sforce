@@ -150,7 +150,6 @@ type UpdateSObjectInput struct {
 
 // UpdateSObjectOutput stores the output after updating a SObject By ID.
 type UpdateSObjectOutput struct {
-	Result *UpsertResult
 }
 
 // UpdateSObject updates the SObject using the Salesforce API.
@@ -170,14 +169,13 @@ func (c *Client) UpdateSObject(input *UpdateSObjectInput) (*UpdateSObjectOutput,
 	if err := json.NewEncoder(buf).Encode(input.SObject); err != nil {
 		return nil, fmt.Errorf("couldn't marshal sobject: %v", err)
 	}
-	var result UpsertResult
 	req := c.newRequest(&request.Operation{
 		Method: http.MethodPatch,
 		APIPath: path.Join(fmt.Sprintf(sObjectPath, c.sess.APIVersion),
 			input.SObjectName, input.SObjectID),
 		Body: buf,
-	}, request.JSONResult, &result, http.StatusOK, http.StatusCreated)
-	return &UpdateSObjectOutput{&result}, req.Send()
+	}, request.JSONResult, nil, http.StatusNoContent)
+	return &UpdateSObjectOutput{}, req.Send()
 }
 
 // UpsertSObjectByExternalIDInput stores the input for upserting a SObject by external ID.

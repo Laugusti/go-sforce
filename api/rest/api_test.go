@@ -227,7 +227,7 @@ func TestGetSObjectByExternalID(t *testing.T) {
 	}
 }
 
-func TestUpsertSObject(t *testing.T) {
+func TestUpdateSObject(t *testing.T) {
 	client, server := createClientAndServer(t)
 	defer server.Stop()
 
@@ -246,7 +246,7 @@ func TestUpsertSObject(t *testing.T) {
 		{"Object", "", map[string]interface{}{"A": "one", "B": 2}, 0, 0, "sobject id is required"},
 		{"Object", "A", nil, 0, 0, "sobject value is required"},
 		{"Object", "A", map[string]interface{}{}, 0, 0, "sobject value is required"},
-		{"Object", "A", map[string]interface{}{"A": "one", "B": 2}, 200, 1, ""},
+		{"Object", "A", map[string]interface{}{"A": "one", "B": 2}, 204, 1, ""},
 		{"Object", "A", map[string]interface{}{"A": "one", "B": 2}, 400, 1, "GENERIC_ERROR"},
 	}
 
@@ -268,17 +268,12 @@ func TestUpsertSObject(t *testing.T) {
 		successFunc := func(res interface{}) {
 			if assert.NotNil(t, res, assertMsg) {
 				out, ok := res.(*UpdateSObjectOutput)
-				if assert.True(t, ok, assertMsg) &&
-					assert.NotNil(t, out, assertMsg) {
-					assert.True(t, out.Result.Success, assertMsg)
-					assert.Equal(t, test.objectID, out.Result.ID,
-						assertMsg)
-				}
+				assert.True(t, ok, assertMsg)
+				assert.NotNil(t, out, assertMsg)
 			}
 		}
 		handler := &testserver.JSONResponseHandler{
 			StatusCode: test.statusCode,
-			Body:       UpsertResult{ID: test.objectID, Success: true, Errors: []interface{}{}},
 		}
 
 		assertRequest(t, assertMsg, server, test.errSnippet, requestFunc, successFunc,
