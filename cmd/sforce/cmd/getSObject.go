@@ -1,9 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
-	"os"
-
 	restapi "github.com/Laugusti/go-sforce/api/rest"
 	"github.com/spf13/cobra"
 )
@@ -16,18 +13,19 @@ var getSObjectCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(2),
 	Short: "Retrieves the SObject using the Object Name and Object ID",
 	Run: func(cmd *cobra.Command, args []string) {
+		// create api input
 		input := &restapi.GetSObjectInput{
 			SObjectName: args[0],
 			SObjectID:   args[1],
 			Fields:      splitString(sobjFields, ","),
 		}
+
+		// do api request
 		out, err := restClient.GetSObject(input)
 		exitIfError("GetSObject", err)
 
-		// create json encoder to write SObject to stdout
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "\t")
-		exitIfError("GetSObject", enc.Encode(out.SObject))
+		// write sobject to stdout
+		marshalJSONToStdout("GetSObject", out.SObject)
 	},
 }
 
