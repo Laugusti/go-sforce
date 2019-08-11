@@ -11,7 +11,7 @@ var sobjExtIDFields string
 var getSObjectByExternalIDCmd = &cobra.Command{
 	Use:   "getSObjectByExternalID <name> <field> <id>",
 	Args:  cobra.ExactArgs(3),
-	Short: "Retrieves the SObject using the Object Name, External ID field and External ID",
+	Short: "Retrieves the SObject using the Object Name, External ID Field and External ID",
 	Run: func(cmd *cobra.Command, args []string) {
 		// create api input
 		input := &restapi.GetSObjectByExternalIDInput{
