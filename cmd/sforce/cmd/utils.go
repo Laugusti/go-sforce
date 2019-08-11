@@ -23,7 +23,6 @@ func marshalJSONToStdout(cmd string, v interface{}) {
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "\t")
 	exitIfError(cmd, enc.Encode(v))
-
 }
 
 func unmarshalJSONFile(cmd, file string, v interface{}) {
