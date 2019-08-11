@@ -13,13 +13,17 @@ var deleteSObjectCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(2),
 	Short: "Deletes the SObject using the Object Name and Object ID",
 	Run: func(cmd *cobra.Command, args []string) {
+		// create api input
 		input := &restapi.DeleteSObjectInput{
 			SObjectName: args[0],
 			SObjectID:   args[1],
 		}
+
+		// do api request
 		_, err := restClient.DeleteSObject(input)
 		exitIfError("DeleteSObject", err)
 
+		// print success message
 		fmt.Printf("Deleted %s object with Id %q\n", args[0], args[1])
 	},
 }

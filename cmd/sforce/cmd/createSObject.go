@@ -1,12 +1,6 @@
 package cmd
 
 import (
-	"bytes"
-	"encoding/json"
-	"io"
-	"io/ioutil"
-	"os"
-
 	restapi "github.com/Laugusti/go-sforce/api/rest"
 	"github.com/spf13/cobra"
 )
@@ -19,30 +13,28 @@ var createSObjectCmd = &cobra.Command{
 	Long: `Creates a new SObject using Object Name and data file.
 With no file or when file is -, read standard input.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// get reader (stdin or file)
-		var r io.Reader = os.Stdin
-		if len(args) == 2 && args[1] != "-" {
-			b, err := ioutil.ReadFile(args[1])
-			//if err == os.ErrNotExist{}
-			exitIfError("CreateSObject", err)
-			r = bytes.NewReader(b)
+		// get file argument or use -
+		file := "-"
+		if len(args) == 2 {
+			file = args[1]
 		}
-		// unmarshal to SObject
-		var sobj restapi.SObject
-		exitIfError("CreateSObject", json.NewDecoder(r).Decode(&sobj))
 
-		// do api request
+		// unmarshal file to sobject
+		var sobj restapi.SObject
+		unmarshalJSONFile("CreateSObject", file, &sobj)
+
+		// create api input
 		input := &restapi.CreateSObjectInput{
 			SObjectName: args[0],
 			SObject:     sobj,
 		}
+
+		// do api request
 		out, err := restClient.CreateSObject(input)
 		exitIfError("CreateSObject", err)
 
-		// write response to stdout
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "\t")
-		exitIfError("CreateSObject", enc.Encode(out.Result))
+		// write result to stdout
+		marshalJSONToStdout("CreateSObject", out.Result)
 	},
 }
 

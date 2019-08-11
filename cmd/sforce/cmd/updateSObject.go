@@ -1,12 +1,7 @@
 package cmd
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"os"
 
 	restapi "github.com/Laugusti/go-sforce/api/rest"
 	"github.com/spf13/cobra"
@@ -20,27 +15,28 @@ var updateSObjectCmd = &cobra.Command{
 	Long: `Updates an existing SObject using the Object Name, Object ID and data file.
 With no file or when file is -, read standard input.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// get reader (stdin or file)
-		var r io.Reader = os.Stdin
-		if len(args) == 3 && args[2] != "-" {
-			b, err := ioutil.ReadFile(args[2])
-			//if err == os.ErrNotExist{}
-			exitIfError("UpdateSObject", err)
-			r = bytes.NewReader(b)
+		// get file argument or use -
+		file := "-"
+		if len(args) == 3 {
+			file = args[2]
 		}
-		// unmarshal to SObject
-		var sobj restapi.SObject
-		exitIfError("UpdateSObject", json.NewDecoder(r).Decode(&sobj))
 
-		// do api request
+		// unmarshal file to sobject
+		var sobj restapi.SObject
+		unmarshalJSONFile("UpdateSObject", file, &sobj)
+
+		// create input
 		input := &restapi.UpdateSObjectInput{
 			SObjectName: args[0],
 			SObjectID:   args[1],
 			SObject:     sobj,
 		}
+
+		// do api request
 		_, err := restClient.UpdateSObject(input)
 		exitIfError("UpdateSObject", err)
 
+		// print success message
 		fmt.Printf("Updated %s object with Id %q\n", args[0], args[1])
 	},
 }
