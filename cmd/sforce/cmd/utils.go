@@ -19,6 +19,12 @@ func splitString(s, sep string) []string {
 	return strings.Split(s, sep)
 }
 
+func readAllStdin(cmd string) string {
+	b, err := ioutil.ReadAll(os.Stdin)
+	exitIfError(cmd, err)
+	return string(b)
+}
+
 func marshalJSONToStdout(cmd string, v interface{}) {
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "\t")
@@ -39,9 +45,7 @@ func unmarshalFile(cmd, file string, unmarshalFunc func([]byte, interface{}) err
 		data = b
 	} else {
 		// get data from stdin
-		b, err := ioutil.ReadAll(os.Stdin)
-		exitIfError(cmd, err)
-		data = b
+		data = []byte(readAllStdin(cmd))
 	}
 	// unmarshal data
 	exitIfError(cmd, unmarshalFunc(data, v))
