@@ -26,8 +26,8 @@ With no file or when file is -, read standard input`,
 		// create api input
 		input := &restapi.UpsertSObjectByExternalIDInput{
 			SObjectName:     args[0],
-			ExternalID:      args[1],
-			ExternalIDField: args[2],
+			ExternalIDField: args[1],
+			ExternalID:      args[2],
 			SObject:         sobj,
 		}
 
