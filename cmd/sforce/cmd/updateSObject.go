@@ -42,5 +42,5 @@ With no file or when file is -, read standard input.`,
 }
 
 func init() {
-	restCmd.AddCommand(updateSObjectCmd)
+	sobjectCmd.AddCommand(updateSObjectCmd)
 }

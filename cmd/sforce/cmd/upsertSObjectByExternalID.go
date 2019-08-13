@@ -41,5 +41,5 @@ With no file or when file is -, read standard input`,
 }
 
 func init() {
-	restCmd.AddCommand(upsertSObjectByExternalIDCmd)
+	sobjectCmd.AddCommand(upsertSObjectByExternalIDCmd)
 }

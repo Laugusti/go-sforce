@@ -31,6 +31,6 @@ var getSObjectByExternalIDCmd = &cobra.Command{
 }
 
 func init() {
-	restCmd.AddCommand(getSObjectByExternalIDCmd)
+	sobjectCmd.AddCommand(getSObjectByExternalIDCmd)
 	getSObjectByExternalIDCmd.Flags().StringVarP(&sobjExtIDFields, "fields", "f", "", "Specify the fields you want to retrieve")
 }

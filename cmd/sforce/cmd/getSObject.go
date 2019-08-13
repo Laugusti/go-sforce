@@ -30,6 +30,6 @@ var getSObjectCmd = &cobra.Command{
 }
 
 func init() {
-	restCmd.AddCommand(getSObjectCmd)
+	sobjectCmd.AddCommand(getSObjectCmd)
 	getSObjectCmd.Flags().StringVarP(&sobjFields, "fields", "f", "", "Specify the fields you want to retrieve")
 }

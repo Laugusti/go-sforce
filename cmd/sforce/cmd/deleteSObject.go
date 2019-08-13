@@ -29,5 +29,5 @@ var deleteSObjectCmd = &cobra.Command{
 }
 
 func init() {
-	restCmd.AddCommand(deleteSObjectCmd)
+	sobjectCmd.AddCommand(deleteSObjectCmd)
 }
