@@ -7,9 +7,9 @@ import (
 
 var sobjFields string
 
-// getSObjectCmd represents the getSObject command
+// getSObjectCmd represents the get command
 var getSObjectCmd = &cobra.Command{
-	Use:   "getSObject <name> <id>",
+	Use:   "get <name> <id>",
 	Args:  cobra.ExactArgs(2),
 	Short: "Retrieves the SObject using the Object Name and Object ID",
 	Run: func(cmd *cobra.Command, args []string) {

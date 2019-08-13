@@ -5,9 +5,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// createSObjectCmd represents the createSObject command
+// createSObjectCmd represents the create command
 var createSObjectCmd = &cobra.Command{
-	Use:   "createSObject <name> [<file>]",
+	Use:   "create <name> [<file>]",
 	Args:  cobra.RangeArgs(1, 2),
 	Short: "Creates a new SObject using Object Name and data file",
 	Long: `Creates a new SObject using Object Name and data file.

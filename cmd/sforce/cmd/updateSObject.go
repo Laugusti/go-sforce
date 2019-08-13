@@ -7,9 +7,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// updateSObjectCmd represents the updateSObject command
+// updateSObjectCmd represents the update command
 var updateSObjectCmd = &cobra.Command{
-	Use:   "updateSObject <name> <id> [<file>]",
+	Use:   "update <name> <id> [<file>]",
 	Args:  cobra.RangeArgs(2, 3),
 	Short: "Updates an existing SObject using the Object Name, Object ID and data file",
 	Long: `Updates an existing SObject using the Object Name, Object ID and data file.

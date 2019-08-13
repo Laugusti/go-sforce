@@ -7,9 +7,9 @@ import (
 
 var sobjExtIDFields string
 
-// getSObjectByExternalIDCmd represents the getSObjectByExternalID command
+// getSObjectByExternalIDCmd represents the getByExternalId command
 var getSObjectByExternalIDCmd = &cobra.Command{
-	Use:   "getSObjectByExternalID <name> <field> <id>",
+	Use:   "getByExternalId <name> <field> <id>",
 	Args:  cobra.ExactArgs(3),
 	Short: "Retrieves the SObject using the Object Name, External ID Field and External ID",
 	Run: func(cmd *cobra.Command, args []string) {
