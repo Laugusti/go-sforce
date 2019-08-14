@@ -5,9 +5,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// upsertSObjectByExternalIDCmd represents the upsertSObjectByExternalID command
+// upsertSObjectByExternalIDCmd represents the upsertByExternalId command
 var upsertSObjectByExternalIDCmd = &cobra.Command{
-	Use:   "upsertSObjectByExternalID <name> <extidfield> <extid> [<file>]",
+	Use:   "upsertByExternalId <name> <extidfield> <extid> [<file>]",
 	Args:  cobra.RangeArgs(3, 4),
 	Short: "Create/Update an existing SObject using the Object Name, External ID Field, External ID and data file",
 	Long: `Create/Update an existing SObject using the Object Name, External ID Field, External ID and data file.
@@ -41,5 +41,5 @@ With no file or when file is -, read standard input`,
 }
 
 func init() {
-	restCmd.AddCommand(upsertSObjectByExternalIDCmd)
+	sobjectCmd.AddCommand(upsertSObjectByExternalIDCmd)
 }

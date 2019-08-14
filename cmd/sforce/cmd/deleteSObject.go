@@ -7,9 +7,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// deleteSObjectCmd represents the deleteSObject command
+// deleteSObjectCmd represents the delete command
 var deleteSObjectCmd = &cobra.Command{
-	Use:   "deleteSObject <name> <id>",
+	Use:   "delete <name> <id>",
 	Args:  cobra.ExactArgs(2),
 	Short: "Deletes the SObject using the Object Name and Object ID",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -29,5 +29,5 @@ var deleteSObjectCmd = &cobra.Command{
 }
 
 func init() {
-	restCmd.AddCommand(deleteSObjectCmd)
+	sobjectCmd.AddCommand(deleteSObjectCmd)
 }
