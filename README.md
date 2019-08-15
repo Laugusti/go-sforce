@@ -1,3 +1,5 @@
+[![GoDoc](https://godoc.org/github.com/Laugusti/go-sforce?status.svg)](https://godoc.org/github.com/Laugusti/go-sforce)
+
 # go-sforce
 go-sforce is a simplified Saleforce client for the Go programming language.
 
