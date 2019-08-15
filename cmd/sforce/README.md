@@ -1,5 +1,5 @@
 # sforce
-A CLI for [go-sforce](../..) written in Go and built using [Cobra](https://github.com/spf13/cobra).
+A CLI for [go-sforce](https://github.com/Laugusti/go-sforce) written in Go and built using [Cobra](https://github.com/spf13/cobra).
 
 ## Installation
 Use `go get` to install CLI
