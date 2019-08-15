@@ -5,7 +5,7 @@ sforce is a CLI for Salesforce API
 ### Synopsis
 
 A simple CLI for the Salesforce API written in Go.
- * Complete documentation is available at https://github.com/Laugusti/go-sforce/tree/master/cmd/sforce
+ * Complete documentation is available at https://github.com/Laugusti/go-sforce/tree/master/cmd/sforce/Documentation/sforce.md
 
 ### Options
 
